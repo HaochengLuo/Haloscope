@@ -16,6 +16,12 @@
 
 <p align="center"><em>Liquid Glass 桌面小组件</em></p>
 
+<p align="center">
+  <img src="docs/images/haloscope-notch-compact.png" width="600" alt="Haloscope 紧凑刘海状态，显示最近活动与七天剩余额度">
+</p>
+
+<p align="center"><em>紧凑刘海状态</em></p>
+
 <table>
   <tr>
     <td width="50%"><img src="docs/images/haloscope-panel-overview.png" alt="Haloscope 刘海面板，显示账户额度、可用重置、当前任务与最近对话"></td>
