@@ -1,5 +1,7 @@
 # Haloscope
 
+[English](README.en.md) | 简体中文
+
 [![CI](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml/badge.svg)](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml)
 
 原生 SwiftUI + AppKit `NSPanel` 的 Codex 状态监控器，包含刘海状态面板与 macOS 桌面小组件，部署目标 macOS 14。数据来自独立的 `codex app-server --stdio`，不读取 Codex Desktop 私有数据库，不抓取 UI，不估算 token。
