@@ -1,0 +1,481 @@
+[
+  {
+    "request": "initialize",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "userAgent": {
+          "type": "str"
+        },
+        "codexHome": {
+          "type": "str"
+        },
+        "platformFamily": {
+          "type": "str"
+        },
+        "platformOs": {
+          "type": "str"
+        }
+      }
+    }
+  },
+  {
+    "notification": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": {
+          "type": "str"
+        },
+        "installationId": "sha256:5a1e4c9a18c2",
+        "environmentId": {
+          "type": "NoneType"
+        }
+      }
+    }
+  },
+  {
+    "request": "account/read",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "account": {
+          "type": "chatgpt",
+          "planType": "plus"
+        },
+        "requiresOpenaiAuth": {
+          "type": "bool"
+        }
+      }
+    }
+  },
+  {
+    "request": "account/rateLimits/read",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": {
+            "type": "NoneType"
+          },
+          "primary": {
+            "usedPercent": 21,
+            "windowDurationMins": 300,
+            "resetsAt": 1783773307
+          },
+          "secondary": {
+            "usedPercent": 3,
+            "windowDurationMins": 10080,
+            "resetsAt": 1784360107
+          },
+          "credits": {
+            "hasCredits": {
+              "type": "bool"
+            },
+            "unlimited": {
+              "type": "bool"
+            },
+            "balance": {
+              "type": "str"
+            }
+          },
+          "individualLimit": {
+            "type": "NoneType"
+          },
+          "planType": "plus",
+          "rateLimitReachedType": {
+            "type": "NoneType"
+          }
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": {
+              "type": "NoneType"
+            },
+            "primary": {
+              "usedPercent": 21,
+              "windowDurationMins": 300,
+              "resetsAt": 1783773307
+            },
+            "secondary": {
+              "usedPercent": 3,
+              "windowDurationMins": 10080,
+              "resetsAt": 1784360107
+            },
+            "credits": {
+              "hasCredits": {
+                "type": "bool"
+              },
+              "unlimited": {
+                "type": "bool"
+              },
+              "balance": {
+                "type": "str"
+              }
+            },
+            "individualLimit": {
+              "type": "NoneType"
+            },
+            "planType": "plus",
+            "rateLimitReachedType": {
+              "type": "NoneType"
+            }
+          }
+        },
+        "rateLimitResetCredits": {
+          "availableCount": {
+            "type": "int"
+          },
+          "credits": {
+            "type": "array",
+            "count": 1,
+            "sample": {
+              "id": "sha256:9ec566e71e08",
+              "resetType": {
+                "type": "str"
+              },
+              "status": "available",
+              "grantedAt": {
+                "type": "int"
+              },
+              "expiresAt": {
+                "type": "int"
+              },
+              "title": {
+                "type": "str"
+              },
+              "description": {
+                "type": "str"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": "account/usage/read",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "summary": {
+          "lifetimeTokens": {
+            "type": "int"
+          },
+          "peakDailyTokens": {
+            "type": "int"
+          },
+          "longestRunningTurnSec": {
+            "type": "int"
+          },
+          "currentStreakDays": {
+            "type": "int"
+          },
+          "longestStreakDays": {
+            "type": "int"
+          }
+        },
+        "dailyUsageBuckets": {
+          "type": "array",
+          "count": 10,
+          "sample": {
+            "startDate": {
+              "type": "str"
+            },
+            "tokens": {
+              "type": "int"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": "thread/list",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "data": {
+          "type": "array",
+          "count": 9,
+          "sample": {
+            "id": "sha256:07d5d464ecca",
+            "extra": {
+              "type": "NoneType"
+            },
+            "sessionId": "sha256:07d5d464ecca",
+            "forkedFromId": {
+              "type": "NoneType"
+            },
+            "parentThreadId": {
+              "type": "NoneType"
+            },
+            "preview": {
+              "type": "str"
+            },
+            "ephemeral": {
+              "type": "bool"
+            },
+            "historyMode": {
+              "type": "str"
+            },
+            "modelProvider": {
+              "type": "str"
+            },
+            "createdAt": {
+              "type": "int"
+            },
+            "updatedAt": {
+              "type": "int"
+            },
+            "recencyAt": {
+              "type": "int"
+            },
+            "status": {
+              "type": "notLoaded"
+            },
+            "cliVersion": {
+              "type": "str"
+            },
+            "source": {
+              "type": "str"
+            },
+            "threadSource": {
+              "type": "NoneType"
+            },
+            "agentNickname": {
+              "type": "NoneType"
+            },
+            "agentRole": {
+              "type": "NoneType"
+            },
+            "gitInfo": {
+              "sha": {
+                "type": "NoneType"
+              },
+              "branch": {
+                "type": "str"
+              },
+              "originUrl": {
+                "type": "NoneType"
+              }
+            },
+            "name": {
+              "type": "str"
+            },
+            "turns": {
+              "type": "array",
+              "count": 0,
+              "sample": null
+            }
+          }
+        },
+        "nextCursor": {
+          "type": "NoneType"
+        },
+        "backwardsCursor": {
+          "type": "str"
+        }
+      }
+    }
+  },
+  {
+    "request": "thread/loaded/list",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "data": {
+          "type": "array",
+          "count": 0,
+          "sample": null
+        },
+        "nextCursor": {
+          "type": "NoneType"
+        }
+      }
+    }
+  },
+  {
+    "request": "thread/read",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "thread": {
+          "id": "sha256:07d5d464ecca",
+          "extra": {
+            "type": "NoneType"
+          },
+          "sessionId": "sha256:07d5d464ecca",
+          "forkedFromId": {
+            "type": "NoneType"
+          },
+          "parentThreadId": {
+            "type": "NoneType"
+          },
+          "preview": {
+            "type": "str"
+          },
+          "ephemeral": {
+            "type": "bool"
+          },
+          "historyMode": {
+            "type": "str"
+          },
+          "modelProvider": {
+            "type": "str"
+          },
+          "createdAt": {
+            "type": "int"
+          },
+          "updatedAt": {
+            "type": "int"
+          },
+          "recencyAt": {
+            "type": "int"
+          },
+          "status": {
+            "type": "notLoaded"
+          },
+          "cliVersion": {
+            "type": "str"
+          },
+          "source": {
+            "type": "str"
+          },
+          "threadSource": {
+            "type": "str"
+          },
+          "agentNickname": {
+            "type": "NoneType"
+          },
+          "agentRole": {
+            "type": "NoneType"
+          },
+          "gitInfo": {
+            "sha": {
+              "type": "NoneType"
+            },
+            "branch": {
+              "type": "str"
+            },
+            "originUrl": {
+              "type": "NoneType"
+            }
+          },
+          "name": {
+            "type": "str"
+          },
+          "turns": {
+            "type": "array",
+            "count": 29,
+            "sample": {
+              "id": "sha256:6bc4de4fc8a1",
+              "items": {
+                "type": "array",
+                "count": 20,
+                "sample": {
+                  "type": "userMessage",
+                  "id": "sha256:59908df50572",
+                  "clientId": "sha256:d600e0224e3f"
+                }
+              },
+              "itemsView": {
+                "type": "str"
+              },
+              "status": "completed",
+              "error": {
+                "type": "NoneType"
+              },
+              "startedAt": {
+                "type": "int"
+              },
+              "completedAt": {
+                "type": "int"
+              },
+              "durationMs": {
+                "type": "int"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": "thread/turns/list",
+    "response": {
+      "id": {
+        "type": "int"
+      },
+      "result": {
+        "data": {
+          "type": "array",
+          "count": 20,
+          "sample": {
+            "id": "sha256:eb6328b37e47",
+            "items": {
+              "type": "array",
+              "count": 2,
+              "sample": {
+                "type": "userMessage",
+                "id": "sha256:a1e35bb7a791",
+                "clientId": "sha256:03c21a22d339"
+              }
+            },
+            "itemsView": {
+              "type": "str"
+            },
+            "status": "interrupted",
+            "error": {
+              "type": "NoneType"
+            },
+            "startedAt": {
+              "type": "int"
+            },
+            "completedAt": {
+              "type": "NoneType"
+            },
+            "durationMs": {
+              "type": "NoneType"
+            }
+          }
+        },
+        "nextCursor": {
+          "type": "str"
+        },
+        "backwardsCursor": {
+          "type": "str"
+        }
+      }
+    }
+  },
+  {
+    "request": "thread/items/list",
+    "response": {
+      "error": {
+        "code": {
+          "type": "int"
+        }
+      },
+      "id": {
+        "type": "int"
+      }
+    }
+  }
+]

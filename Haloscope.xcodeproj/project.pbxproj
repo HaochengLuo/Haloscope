@@ -1,0 +1,529 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA1000000000000000000001 /* Haloscope/App/HaloscopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000001 /* Haloscope/App/HaloscopeApp.swift */; };
+		AA1000000000000000000002 /* Haloscope/CodexClient/CodexAppServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000002 /* Haloscope/CodexClient/CodexAppServer.swift */; };
+		AA1000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift */; };
+		AA1000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift */; };
+		AA1000000000000000000005 /* Haloscope/Models/CoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000005 /* Haloscope/Models/CoreModels.swift */; };
+		AA1000000000000000000006 /* Haloscope/Services/SystemServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000006 /* Haloscope/Services/SystemServices.swift */; };
+		AA1000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */; };
+		AA1000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift */; };
+		AA1000000000000000000009 /* Haloscope/Views/IslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000009 /* Haloscope/Views/IslandView.swift */; };
+		AA100000000000000000000A /* Haloscope/Window/NotchPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000A /* Haloscope/Window/NotchPanelController.swift */; };
+		AA100000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift */; };
+		AA100000000000000000000C /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */; };
+		AA100000000000000000000D /* HaloscopeWidget/Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000C /* HaloscopeWidget/Localizable.xcstrings */; };
+		AA100000000000000000000E /* HaloscopeTests/CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000D /* HaloscopeTests/CoreTests.swift */; };
+		AA100000000000000000000F /* HaloscopeWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA3000000000000000000002 /* HaloscopeWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AA4000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA5000000000000000000002;
+			remoteInfo = HaloscopeWidget;
+		};
+		AA4000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA5000000000000000000001;
+			remoteInfo = Haloscope;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AA6000000000000000000004 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AA100000000000000000000F /* HaloscopeWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		AA2000000000000000000001 /* Haloscope/App/HaloscopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/App/HaloscopeApp.swift; sourceTree = "<group>"; };
+		AA2000000000000000000002 /* Haloscope/CodexClient/CodexAppServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/CodexClient/CodexAppServer.swift; sourceTree = "<group>"; };
+		AA2000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/CodexClient/CodexPayloadDecoder.swift; sourceTree = "<group>"; };
+		AA2000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/CodexClient/JSONValue.swift; sourceTree = "<group>"; };
+		AA2000000000000000000005 /* Haloscope/Models/CoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Models/CoreModels.swift; sourceTree = "<group>"; };
+		AA2000000000000000000006 /* Haloscope/Services/SystemServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Services/SystemServices.swift; sourceTree = "<group>"; };
+		AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Shared/WidgetQuotaSnapshot.swift; sourceTree = "<group>"; };
+		AA2000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/ViewModels/IslandViewModel.swift; sourceTree = "<group>"; };
+		AA2000000000000000000009 /* Haloscope/Views/IslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Views/IslandView.swift; sourceTree = "<group>"; };
+		AA200000000000000000000A /* Haloscope/Window/NotchPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Window/NotchPanelController.swift; sourceTree = "<group>"; };
+		AA200000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaloscopeWidget/HaloscopeWidget.swift; sourceTree = "<group>"; };
+		AA200000000000000000000C /* HaloscopeWidget/Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = HaloscopeWidget/Localizable.xcstrings; sourceTree = "<group>"; };
+		AA200000000000000000000D /* HaloscopeTests/CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaloscopeTests/CoreTests.swift; sourceTree = "<group>"; };
+		AA200000000000000000000E /* Packaging/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Packaging/Info.plist; sourceTree = "<group>"; };
+		AA200000000000000000000F /* Packaging/Haloscope.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Packaging/Haloscope.entitlements; sourceTree = "<group>"; };
+		AA2000000000000000000010 /* HaloscopeWidget/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = HaloscopeWidget/Info.plist; sourceTree = "<group>"; };
+		AA2000000000000000000011 /* HaloscopeWidget/HaloscopeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HaloscopeWidget/HaloscopeWidget.entitlements; sourceTree = "<group>"; };
+		AA3000000000000000000001 /* Haloscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Haloscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA3000000000000000000002 /* HaloscopeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HaloscopeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA3000000000000000000003 /* HaloscopeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HaloscopeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA6000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000011 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA7000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				AA2000000000000000000001 /* Haloscope/App/HaloscopeApp.swift */,
+				AA2000000000000000000002 /* Haloscope/CodexClient/CodexAppServer.swift */,
+				AA2000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift */,
+				AA2000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift */,
+				AA2000000000000000000005 /* Haloscope/Models/CoreModels.swift */,
+				AA2000000000000000000006 /* Haloscope/Services/SystemServices.swift */,
+				AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */,
+				AA2000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift */,
+				AA2000000000000000000009 /* Haloscope/Views/IslandView.swift */,
+				AA200000000000000000000A /* Haloscope/Window/NotchPanelController.swift */,
+				AA200000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift */,
+				AA200000000000000000000C /* HaloscopeWidget/Localizable.xcstrings */,
+				AA200000000000000000000D /* HaloscopeTests/CoreTests.swift */,
+				AA200000000000000000000E /* Packaging/Info.plist */,
+				AA200000000000000000000F /* Packaging/Haloscope.entitlements */,
+				AA2000000000000000000010 /* HaloscopeWidget/Info.plist */,
+				AA2000000000000000000011 /* HaloscopeWidget/HaloscopeWidget.entitlements */,
+				AA7000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA7000000000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA3000000000000000000001 /* Haloscope.app */,
+				AA3000000000000000000002 /* HaloscopeWidget.appex */,
+				AA3000000000000000000003 /* HaloscopeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA5000000000000000000001 /* Haloscope */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA8000000000000000000002 /* Build configuration list for PBXNativeTarget "Haloscope" */;
+			buildPhases = (
+				AA6000000000000000000002 /* Sources */,
+				AA6000000000000000000001 /* Frameworks */,
+				AA6000000000000000000003 /* Resources */,
+				AA6000000000000000000004 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA9000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = Haloscope;
+			productName = Haloscope;
+			productReference = AA3000000000000000000001 /* Haloscope.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AA5000000000000000000002 /* HaloscopeWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA8000000000000000000003 /* Build configuration list for PBXNativeTarget "HaloscopeWidget" */;
+			buildPhases = (
+				AA6000000000000000000012 /* Sources */,
+				AA6000000000000000000011 /* Frameworks */,
+				AA6000000000000000000013 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HaloscopeWidget;
+			productName = HaloscopeWidget;
+			productReference = AA3000000000000000000002 /* HaloscopeWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AA5000000000000000000003 /* HaloscopeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA8000000000000000000004 /* Build configuration list for PBXNativeTarget "HaloscopeTests" */;
+			buildPhases = (
+				AA6000000000000000000022 /* Sources */,
+				AA6000000000000000000021 /* Frameworks */,
+				AA6000000000000000000023 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA9000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = HaloscopeTests;
+			productName = HaloscopeTests;
+			productReference = AA3000000000000000000003 /* HaloscopeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					AA5000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+						ProvisioningStyle = Automatic;
+					};
+					AA5000000000000000000002 = {
+						CreatedOnToolsVersion = 26.0;
+						ProvisioningStyle = Automatic;
+					};
+					AA5000000000000000000003 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = AA8000000000000000000001 /* Build configuration list for PBXProject "Haloscope" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = AA7000000000000000000001;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AA7000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA5000000000000000000001 /* Haloscope */,
+				AA5000000000000000000002 /* HaloscopeWidget */,
+				AA5000000000000000000003 /* HaloscopeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA6000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000013 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA100000000000000000000D /* HaloscopeWidget/Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000023 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA6000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA1000000000000000000001 /* Haloscope/App/HaloscopeApp.swift in Sources */,
+				AA1000000000000000000002 /* Haloscope/CodexClient/CodexAppServer.swift in Sources */,
+				AA1000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift in Sources */,
+				AA1000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift in Sources */,
+				AA1000000000000000000005 /* Haloscope/Models/CoreModels.swift in Sources */,
+				AA1000000000000000000006 /* Haloscope/Services/SystemServices.swift in Sources */,
+				AA1000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
+				AA1000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift in Sources */,
+				AA1000000000000000000009 /* Haloscope/Views/IslandView.swift in Sources */,
+				AA100000000000000000000A /* Haloscope/Window/NotchPanelController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA100000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift in Sources */,
+				AA100000000000000000000C /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA6000000000000000000022 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA100000000000000000000E /* HaloscopeTests/CoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA9000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA5000000000000000000002 /* HaloscopeWidget */;
+			targetProxy = AA4000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		AA9000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA5000000000000000000001 /* Haloscope */;
+			targetProxy = AA4000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AAB000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AAB000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		AAB000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Packaging/Haloscope.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				INFOPLIST_FILE = Packaging/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
+				PRODUCT_NAME = Haloscope;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		AAB000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Packaging/Haloscope.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				INFOPLIST_FILE = Packaging/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
+				PRODUCT_NAME = Haloscope;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		AAB000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = HaloscopeWidget/HaloscopeWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
+				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
+				PRODUCT_NAME = HaloscopeWidget;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		AAB000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = HaloscopeWidget/HaloscopeWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
+				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
+				PRODUCT_NAME = HaloscopeWidget;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		AAB000000000000000000031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Haloscope.app/Contents/MacOS/Haloscope";
+			};
+			name = Debug;
+		};
+		AAB000000000000000000032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Haloscope.app/Contents/MacOS/Haloscope";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA8000000000000000000001 /* Build configuration list for PBXProject "Haloscope" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAB000000000000000000001 /* Debug */,
+				AAB000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA8000000000000000000002 /* Build configuration list for PBXNativeTarget "Haloscope" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAB000000000000000000011 /* Debug */,
+				AAB000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA8000000000000000000003 /* Build configuration list for PBXNativeTarget "HaloscopeWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAB000000000000000000021 /* Debug */,
+				AAB000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA8000000000000000000004 /* Build configuration list for PBXNativeTarget "HaloscopeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAB000000000000000000031 /* Debug */,
+				AAB000000000000000000032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}

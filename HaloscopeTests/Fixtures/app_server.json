@@ -1,0 +1,1 @@
+{"account":{"planType":"plus"},"rateLimits":{"limitId":"codex","primary":{"usedPercent":7,"windowDurationMins":300,"resetsAt":1783750215}},"dailyUsageBuckets":[{"startDate":"2026-07-11","tokens":1234}],"thread":{"id":"fixture-thread","status":{"type":"idle"},"unknownFutureField":true}}
