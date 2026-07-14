@@ -8,6 +8,25 @@
 
 > Haloscope 是非官方开源项目，与 OpenAI 不存在隶属或背书关系。Codex 名称及相关商标归其权利人所有。
 
+## 界面预览
+
+<p align="center">
+  <img src="docs/images/haloscope-widget.png" width="280" alt="Haloscope 桌面小组件，显示 Codex 七天剩余额度与重置倒计时">
+</p>
+
+<p align="center"><em>Liquid Glass 桌面小组件</em></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/haloscope-panel-overview.png" alt="Haloscope 刘海面板，显示账户额度、可用重置、当前任务与最近对话"></td>
+    <td width="50%"><img src="docs/images/haloscope-panel-activity.png" alt="Haloscope 刘海面板，显示最近对话与 Token 统计"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>账户与任务概览</em></td>
+    <td align="center"><em>对话与 Token 活动</em></td>
+  </tr>
+</table>
+
 ## 当前状态
 
 已建立 Swift 并发 JSON-RPC 客户端、真实账户/usage/线程字段映射、进程/path 解析、刘海几何、NSPanel、设置、登录项、Mock 模式与脱敏诊断。桌面小组件显示当前 7D 剩余额度、重置倒计时与可用重置次数；桌面小组件和刘海面板均采用 Liquid Glass 设计。

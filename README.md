@@ -8,6 +8,25 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 
 > Haloscope is an unofficial open-source project and is not affiliated with or endorsed by OpenAI. Codex and related trademarks belong to their respective owners.
 
+## Preview
+
+<p align="center">
+  <img src="docs/images/haloscope-widget.png" width="280" alt="Haloscope desktop widget showing the remaining seven-day Codex allowance and reset countdown">
+</p>
+
+<p align="center"><em>Liquid Glass desktop widget</em></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/haloscope-panel-overview.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
+    <td width="50%"><img src="docs/images/haloscope-panel-activity.png" alt="Haloscope notch panel showing recent conversations and token statistics"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Account and task overview</em></td>
+    <td align="center"><em>Conversation and token activity</em></td>
+  </tr>
+</table>
+
 ## Current status
 
 The project includes a Swift concurrency JSON-RPC client, mappings for real account, usage, and thread payloads, Codex executable discovery, notch geometry detection, an `NSPanel` interface, settings, login-item support, mock mode, and redacted diagnostics. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. Both the widget and notch panel use a Liquid Glass design, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
