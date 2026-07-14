@@ -1,55 +1,74 @@
 # Haloscope
 
-[English](README.en.md) | 简体中文
+English | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml/badge.svg)](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml)
 
-原生 SwiftUI + AppKit `NSPanel` 的 Codex 状态监控器，包含刘海状态面板与 macOS 桌面小组件，部署目标 macOS 14。数据来自独立的 `codex app-server --stdio`，不读取 Codex Desktop 私有数据库，不抓取 UI，不估算 token。
+Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKit `NSPanel`. It combines a notch-attached status panel with a desktop widget and supports macOS 14 or later. All data comes from a separate `codex app-server --stdio` process: Haloscope does not read Codex Desktop's private database, scrape its UI, or estimate token counts.
 
-> Haloscope 是非官方开源项目，与 OpenAI 不存在隶属或背书关系。Codex 名称及相关商标归其权利人所有。
+> Haloscope is an unofficial open-source project and is not affiliated with or endorsed by OpenAI. Codex and related trademarks belong to their respective owners.
 
-## 当前状态
+## Current status
 
-已建立 Swift 并发 JSON-RPC 客户端、真实账户/usage/线程字段映射、进程/path 解析、刘海几何、NSPanel、设置、登录项、Mock 模式与脱敏诊断。桌面小组件显示当前 7D 剩余额度、重置倒计时与可用重置次数；桌面小组件和刘海面板均采用 Liquid Glass 设计。
+The project includes a Swift concurrency JSON-RPC client, mappings for real account, usage, and thread payloads, Codex executable discovery, notch geometry detection, an `NSPanel` interface, settings, login-item support, mock mode, and redacted diagnostics. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. Both the widget and notch panel use a Liquid Glass design, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
 
-## 运行
+## Build and run
 
-1. 在 Xcode 中打开 `Haloscope.xcodeproj`，为 Haloscope 与 HaloscopeWidget 两个 target 选择同一个 Team，并将 Bundle ID、App Group 和 Keychain Group 改为属于该 Team 的唯一标识，然后运行 Haloscope scheme。
-2. 运行后，在桌面右键“编辑小组件”，搜索 “Haloscope”，添加小号组件。
-3. 应用按自定义路径、`~/.local/bin`、Homebrew、系统路径、login shell 的顺序寻找 `codex`。
+Requirements:
 
-命令行验证可运行 `swift test --disable-sandbox`。尚未配置签名身份时，可用 `UNSIGNED=1 scripts/build_app.sh` 验证完整 app/appex 包装，但未签名的小组件不能注册到系统。
+- macOS 14 or later
+- Xcode 26 or later for building the current Liquid Glass source
+- A working, authenticated Codex CLI installation
 
-签名构建通过环境变量提供本地 Team，不在仓库中保存个人签名信息：
+1. Open `Haloscope.xcodeproj` in Xcode.
+2. Select the same development Team for the Haloscope and HaloscopeWidget targets. Replace the Bundle IDs, App Group, and Keychain Group with unique identifiers owned by that Team.
+3. Run the Haloscope scheme.
+4. Right-click the desktop, choose **Edit Widgets**, search for **Haloscope**, and add the small widget.
+
+Haloscope looks for `codex` in this order: the custom path selected in Settings, `~/.local/bin`, Homebrew, system paths, and the login shell.
+
+Run the test suite from the command line:
+
+```bash
+swift test --disable-sandbox
+```
+
+To verify the complete app and widget-extension packaging without a signing identity:
+
+```bash
+UNSIGNED=1 scripts/build_app.sh
+```
+
+An unsigned widget cannot register with macOS. For a signed local build, provide the Team through an environment variable so personal signing information is not stored in the repository:
 
 ```bash
 HALOSCOPE_DEVELOPMENT_TEAM=YOUR_TEAM_ID scripts/build_app.sh
 ```
 
-如使用自己的 App Group，同时传入 `HALOSCOPE_APP_GROUP_IDENTIFIER` 和 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`。构建输出为 `dist/Haloscope.zip`。
+When using your own App Group, also provide `HALOSCOPE_APP_GROUP_IDENTIFIER` and `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`. The build output is written to `dist/Haloscope.zip`.
 
-协议 Schema 不纳入 Git 历史，需要排查协议变化时运行 `scripts/generate_protocol_schemas.sh` 在本地重新生成。
+Generated protocol schemas are intentionally excluded from Git history. Run `scripts/generate_protocol_schemas.sh` to recreate them locally when investigating protocol changes.
 
-## 权限与隐私
+## Permissions and privacy
 
-MVP 建议非 Sandbox 的 Developer ID 分发，因为需要启动用户的 Codex CLI 并访问其正常状态目录。应用不需要 Accessibility、屏幕录制、浏览器 Cookie 或 ChatGPT 凭证权限。详见 [分发说明](docs/DISTRIBUTION.md)。
+The current distribution design uses a non-sandboxed Developer ID app because Haloscope must launch the user-selected Codex CLI and let it access its normal state directory. Haloscope does not require Accessibility, screen recording, browser cookies, or ChatGPT credentials. See the [distribution notes](docs/DISTRIBUTION.md) for details.
 
-## 已知限制
+## Known limitations
 
-- App Server 没有暴露 Codex Desktop 当前选中线程；界面必须显示手动绑定、自动识别、推断或不可用。
-- 2026-07-14 的 Codex CLI 0.144.1 实测仅返回 10080 分钟（7D）主额度；界面不再显示已取消的 5H 额度。
-- `account/usage/read` 是自然日 bucket，“24 小时”只能表述为最近可用日。
-- 本次探针没有活动线程，未取得实时 token/context notification 实例；不显示推测数字。
-- 当前实现已可编译并通过测试；实时 notification 驱动的 token/context、完整子代理实例验证、不同机型视觉 QA、Developer ID 签名和公证仍为部分实现。
+- Codex App Server does not expose the thread currently selected in Codex Desktop. Haloscope therefore labels thread selection as manual, automatically detected, inferred, or unavailable.
+- Testing with Codex CLI 0.144.1 on July 14, 2026 returned only the 10,080-minute (7-day) primary allowance. Haloscope no longer displays the discontinued 5-hour allowance.
+- `account/usage/read` returns calendar-day buckets rather than a rolling 24-hour window, so the UI describes the newest value as the latest available day.
+- The captured probe did not include an active thread, so real-time token/context notifications and complete subagent behavior still need additional real-world validation. Haloscope does not display guessed values.
+- Developer ID signing, notarization, broader hardware visual QA, and a complete public binary-release process are not finished yet.
 
-## 故障排除
+## Troubleshooting
 
-- “未找到 codex”：在设置中选择可执行文件，并确认 `codex --version` 可运行。
-- App Server 失败：查看脱敏连接错误；不要复制认证响应。
-- Swift/SDK mismatch：安装完整 Xcode并切换 `xcode-select`，确保 `xcrun swift --version` 与 SDK build 匹配。
-- 登录项 requiresApproval：在“系统设置 → 通用 → 登录项”批准。
+- **Codex not found:** select the executable in Settings and confirm that `codex --version` works in Terminal.
+- **App Server failure:** inspect the redacted connection error. Do not include authentication responses in bug reports.
+- **Swift/SDK mismatch:** install the full Xcode release, select it with `xcode-select`, and confirm that `xcrun swift --version` matches the active SDK.
+- **Login item requires approval:** approve Haloscope under **System Settings → General → Login Items**.
 
-协议证据见 [能力矩阵](docs/CAPABILITY_MATRIX.md) 与 [协议记录](docs/CODEX_PROTOCOL_NOTES.md)。
+Protocol evidence and implementation boundaries are documented in the [capability matrix](docs/CAPABILITY_MATRIX.md) and [protocol notes](docs/CODEX_PROTOCOL_NOTES.md).
 
 ## License
 
