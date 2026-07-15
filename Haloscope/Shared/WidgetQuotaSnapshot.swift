@@ -116,10 +116,11 @@ struct WidgetQuotaSnapshotStore: Sendable {
         let data = try encoder().encode(snapshot)
         if explicitDirectoryURL == nil {
             try writeKeychain(data)
+            logger.notice("Wrote widget snapshot to shared keychain; remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
+            return
         }
         let fileURL = try snapshotURL(createDirectory: true)
         try data.write(to: fileURL, options: .atomic)
-        sharedDefaults?.set(data, forKey: Self.defaultsKey)
         logger.notice("Wrote widget snapshot to \(fileURL.path, privacy: .public); remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
     }
 

@@ -83,6 +83,47 @@ final class CoreTests: XCTestCase {
         let b=s.calculate(screenFrame:f.offsetBy(dx:1920,dy:0),visibleFrame:f,safeTop:0,leftTop:nil,rightTop:nil,identifier:"b")
         XCTAssertFalse(a.hasPhysicalNotch); XCTAssertNotEqual(a.screenIdentifier,b.screenIdentifier); XCTAssertNotEqual(a.collapsedPanelFrame.minX,b.collapsedPanelFrame.minX)
     }
+    @MainActor func testPanelEventRoutingRequiresExpandedStateAndPointerPresence() {
+        XCTAssertFalse(PanelEventRoutingPolicy.isInteractive(.collapsedIdle))
+        XCTAssertTrue(PanelEventRoutingPolicy.isInteractive(.expanded))
+        XCTAssertTrue(PanelEventRoutingPolicy.isInteractive(.settingsPresented))
+        XCTAssertTrue(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:false))
+        XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:true,pointerInside:false))
+        XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:true))
+    }
+    func testConnectionTransitionsPreserveInteractivePanelPresentation() {
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.expanded),.expanded)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.expanded),.expanded)
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.settingsPresented),.settingsPresented)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.settingsPresented),.settingsPresented)
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.error),.collapsedIdle)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.collapsedIdle),.error)
+    }
+    func testWidgetSnapshotCoordinatorPersistsSnapshots() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        defer { try? FileManager.default.removeItem(at:directory) }
+        let store = WidgetQuotaSnapshotStore(directoryURL:directory)
+        let coordinator = WidgetSnapshotCoordinator(store:store,reloadTimelines:{})
+        let snapshot = WidgetQuotaSnapshot(remainingPercent:64,windowDurationMins:10080,resetsAt:nil,availableResetCredits:2,planType:"plus",updatedAt:Date(timeIntervalSince1970:1_750_000_000),availability:.available,errorMessage:nil)
+        await coordinator.publish(snapshot)
+        XCTAssertEqual(try store.read(),snapshot)
+    }
+    @MainActor func testInteractiveOverlayWindowPreservesRequestedTopEdge() {
+        let panel=IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
+        let requested=NSRect(x:700,y:1052,width:220,height:55)
+        XCTAssertFalse(panel.canBecomeKey)
+        panel.interactionEnabled=true
+        XCTAssertTrue(panel.canBecomeKey)
+        XCTAssertEqual(panel.constrainFrameRect(requested,to:NSScreen.main),requested)
+    }
+    @MainActor func testIslandScrollViewOwnsNativeElasticMomentum() {
+        let scrollView=IslandOwnedScrollView()
+        XCTAssertEqual(scrollView.verticalScrollElasticity,.allowed)
+        XCTAssertEqual(scrollView.horizontalScrollElasticity,.none)
+        XCTAssertTrue(scrollView.usesPredominantAxisScrolling)
+        XCTAssertFalse(scrollView.hasVerticalScroller)
+        XCTAssertFalse(scrollView.drawsBackground)
+    }
     func testCodexPathResolutionOrder() { XCTAssertEqual(CodexProcessResolver().resolve(custom:"/custom",home:"/home",executable:{$0 == "/custom"}),"/custom") }
     func testReconnectBackoff() { let b=Backoff(base:1,maximum:8); XCTAssertEqual(b.delay(attempt:0),1); XCTAssertEqual(b.delay(attempt:8),8) }
     func testOnlyTransportErrorsTriggerReconnect() {

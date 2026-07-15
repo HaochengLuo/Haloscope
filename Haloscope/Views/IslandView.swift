@@ -1,4 +1,104 @@
+import AppKit
 import SwiftUI
+
+/// A stable AppKit gesture owner for the island's vertical content. Keeping
+/// elasticity enabled makes the top and bottom feel native while preventing
+/// the scroll chain from being handed to a window in another process.
+@MainActor final class IslandOwnedScrollView: NSScrollView {
+    var layoutHostedDocument: (() -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame:frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder:coder)
+        configure()
+    }
+
+    override func layout() {
+        super.layout()
+        layoutHostedDocument?()
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    private func configure() {
+        borderType = .noBorder
+        drawsBackground = false
+        backgroundColor = .clear
+        hasVerticalScroller = false
+        hasHorizontalScroller = false
+        autohidesScrollers = true
+        automaticallyAdjustsContentInsets = false
+        contentInsets = NSEdgeInsets(top:0,left:0,bottom:0,right:0)
+        scrollerInsets = NSEdgeInsets(top:0,left:0,bottom:0,right:0)
+        verticalScrollElasticity = .allowed
+        horizontalScrollElasticity = .none
+        usesPredominantAxisScrolling = true
+        scrollsDynamically = true
+        contentView.drawsBackground = false
+    }
+}
+
+/// SwiftUI still renders the exact same detail tree; only the viewport and
+/// gesture ownership move to AppKit. The hosting view is resized to its
+/// measured content height without resetting the clip view's scroll offset.
+private struct IslandNativeScrollView<Content: View>: NSViewRepresentable {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    func makeCoordinator() -> Coordinator { Coordinator(content:content) }
+
+    func makeNSView(context: Context) -> IslandOwnedScrollView {
+        let scrollView = IslandOwnedScrollView()
+        let hostingController = context.coordinator.hostingController
+        let hostingView = hostingController.view
+        hostingView.frame = NSRect(x:0,y:0,width:1,height:1)
+        hostingView.autoresizingMask = []
+        hostingController.sizingOptions = [.intrinsicContentSize]
+        scrollView.documentView = hostingView
+        scrollView.layoutHostedDocument = { [weak scrollView, weak hostingController] in
+            guard let scrollView, let hostingController else { return }
+            let hostingView = hostingController.view
+            let viewport = scrollView.contentSize
+            guard viewport.width > 0, viewport.height > 0 else { return }
+
+            let fitting = hostingController.sizeThatFits(
+                in:CGSize(width:viewport.width,height:100_000)
+            )
+            let documentSize = CGSize(
+                width:viewport.width,
+                height:max(viewport.height,ceil(fitting.height))
+            )
+            guard abs(hostingView.frame.width-documentSize.width) > 0.5 ||
+                  abs(hostingView.frame.height-documentSize.height) > 0.5 else { return }
+
+            let oldBounds = scrollView.contentView.bounds
+            hostingView.frame = NSRect(origin:.zero,size:documentSize)
+            let constrained = scrollView.contentView.constrainBoundsRect(oldBounds)
+            scrollView.contentView.scroll(to:constrained.origin)
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+        scrollView.layoutHostedDocument?()
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: IslandOwnedScrollView, context: Context) {
+        context.coordinator.hostingController.rootView = content
+        DispatchQueue.main.async { [weak scrollView] in
+            scrollView?.needsLayout = true
+            scrollView?.layoutSubtreeIfNeeded()
+        }
+    }
+
+    @MainActor final class Coordinator {
+        let hostingController: NSHostingController<Content>
+        init(content: Content) { hostingController = NSHostingController(rootView:content) }
+    }
+}
 
 private struct NotchRevealModifier: ViewModifier {
     let visible: Bool
@@ -130,7 +230,7 @@ struct IslandView: View {
         let bottom: CGFloat = isExpanded ? 28 : (isPhysicalNotch ? 12 : 14)
         return UnevenRoundedRectangle(cornerRadii:.init(topLeading:top,bottomLeading:bottom,bottomTrailing:bottom,topTrailing:top),style:.continuous)
     }
-    private var details: some View { ScrollView(.vertical,showsIndicators:false) { VStack(alignment:.leading,spacing:10) {
+    private var details: some View { IslandNativeScrollView { VStack(alignment:.leading,spacing:10) {
         HStack { VStack(alignment:.leading,spacing:2) { Text("Haloscope").font(.system(size:17,weight:.semibold)); Text(model.planType.map { "\($0) plan" } ?? "Account status").font(.system(size:11)).foregroundStyle(.secondary) }; Spacer(); if model.isMockData { pill("MOCK",color:.yellow) } else { pill(model.bindingKind.label,color:accent) } }
         section("账户额度",icon:"gauge.with.dots.needle.50percent") {
             quota(model.activeQuotaWindow,"当前账户未返回 7 天额度")
@@ -147,7 +247,7 @@ struct IslandView: View {
         HStack(spacing:6) { Circle().fill(connectionColor).frame(width:6,height:6); Text(connectionLabel).font(.system(size:10)); Spacer(); if let date=model.threadDataUpdatedAt { Text(date.formatted(date:.omitted,time:.shortened)).font(.system(size:10).monospacedDigit()) } }.foregroundStyle(.tertiary).padding(.horizontal,2)
         if let date=model.lastUpdated { Text("额度更新：\(date.formatted(date:.omitted,time:.standard)) · 每 60 秒刷新").font(.system(size:9)).foregroundStyle(.quaternary) }
         if let error=model.errorMessage { Text(error).font(.system(size:10)).foregroundStyle(.red).lineLimit(2) }
-    }.padding(.bottom,4) } }
+    }.padding(.bottom,4).frame(maxWidth:.infinity,alignment:.topLeading) }.frame(maxWidth:.infinity,maxHeight:.infinity) }
     private func section<Content:View>(_ title:String,icon:String,@ViewBuilder content:()->Content)->some View { VStack(alignment:.leading,spacing:9){ Label(title,systemImage:icon).font(.system(size:11,weight:.semibold)).foregroundStyle(.secondary); content() }.padding(12).frame(maxWidth:.infinity,alignment:.leading).background(card,in:RoundedRectangle(cornerRadius:14,style:.continuous)).overlay(RoundedRectangle(cornerRadius:14,style:.continuous).stroke(border,lineWidth:0.7)) }
     private func quota(_ value:RateWindow?,_ unavailable:String)->some View { Group { if let value { VStack(spacing:5) { HStack { Text(value.displayName).font(.system(size:12,weight:.medium)); Spacer(); Text("\(value.roundedRemainingPercent)%").monospacedDigit().font(.system(size:12,weight:.semibold)) }; GeometryReader { proxy in ZStack(alignment:.leading) { Capsule().fill(Color.white.opacity(0.08)); Capsule().fill(accent).frame(width:proxy.size.width*value.remainingPercent/100) } }.frame(height:4); if let reset=value.resetsAt { HStack { Text("重置时间"); Spacer(); Text(reset.formatted(date:.abbreviated,time:.shortened)).monospacedDigit() }.font(.system(size:9)).foregroundStyle(.tertiary) } } } else { empty(unavailable) } } }
     private func threadRow(_ thread:CodexThread)->some View { Button { model.selectThread(thread.id) } label: { HStack(spacing:9) { Image(systemName:thread.status == .active || thread.status == .waiting ? "circle.fill":"circle").font(.system(size:7)).foregroundStyle(thread.status == .active || thread.status == .waiting ? accent:.secondary); VStack(alignment:.leading,spacing:2) { Text(thread.preview ?? "无标题线程").font(.system(size:12,weight:.medium)).lineLimit(1); Text(thread.updatedAt.formatted(date:.omitted,time:.shortened)).font(.system(size:10)).foregroundStyle(.tertiary) }; Spacer(); Image(systemName:model.selectedThreadID == thread.id && settings.binding == .manual ? "checkmark":"chevron.right").font(.system(size:9,weight:.semibold)).foregroundStyle(.quaternary) }.padding(.vertical,2) }.buttonStyle(.plain) }

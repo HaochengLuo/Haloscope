@@ -4,6 +4,64 @@ import WidgetKit
 
 enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, settingsPresented, disconnected, error }
 
+struct PanelPresentationPolicy {
+    static func connectedState(from current: PanelState) -> PanelState {
+        preservesInteractiveState(current) ? current : .collapsedIdle
+    }
+
+    static func failedState(from current: PanelState) -> PanelState {
+        preservesInteractiveState(current) ? current : .error
+    }
+
+    private static func preservesInteractiveState(_ state: PanelState) -> Bool {
+        state == .expanded || state == .settingsPresented
+    }
+}
+
+actor WidgetSnapshotCoordinator {
+    private let store: WidgetQuotaSnapshotStore
+    private let reloadTimelines: @Sendable () -> Void
+    private var hasReloadedWidgetThisSession = false
+
+    init(
+        store: WidgetQuotaSnapshotStore = WidgetQuotaSnapshotStore(),
+        reloadTimelines: @escaping @Sendable () -> Void = {
+            WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
+        }
+    ) {
+        self.store = store
+        self.reloadTimelines = reloadTimelines
+    }
+
+    func read() -> WidgetQuotaSnapshot? {
+        try? store.read()
+    }
+
+    func publish(_ snapshot: WidgetQuotaSnapshot) {
+        do {
+            let previous = try store.read()
+            try store.write(snapshot)
+            if !hasReloadedWidgetThisSession || snapshot.materiallyDiffers(from:previous) {
+                reloadTimelines()
+                hasReloadedWidgetThisSession = true
+            }
+        } catch {
+            // SwiftPM and unsigned development builds do not have an App Group container.
+        }
+    }
+
+    func publishUnavailableIfNeeded(_ message: String) {
+        do {
+            guard try store.read() == nil else { return }
+            try store.write(.unavailable(message))
+            reloadTimelines()
+            hasReloadedWidgetThisSession = true
+        } catch {
+            // Keep the host functional when signing/App Group setup is incomplete.
+        }
+    }
+}
+
 @MainActor final class IslandViewModel: ObservableObject {
     @Published var panelState: PanelState = .disconnected
     @Published var connection: ConnectionState = .disconnected
@@ -22,7 +80,7 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
     @Published var notchGeometry: ScreenGeometry?
     @Published var isPinnedExpanded = false
     var onPanelStateChange: (() -> Void)?
-    private let client = JSONRPCClient(); private let widgetStore = WidgetQuotaSnapshotStore(); private let retryPolicy = RPCRequestRetryPolicy(); private var reconnectTask: Task<Void,Never>?; private var recoveryTask: Task<Void,Never>?; private var monitoringTask: Task<Void,Never>?; private var accountMonitoringTask: Task<Void,Never>?; private var hasReloadedWidgetThisSession = false; private var isRefreshingAccount = false; private var isRefreshingThreads = false
+    private let client = JSONRPCClient(); private let widgetSnapshots = WidgetSnapshotCoordinator(); private let retryPolicy = RPCRequestRetryPolicy(); private var reconnectTask: Task<Void,Never>?; private var recoveryTask: Task<Void,Never>?; private var monitoringTask: Task<Void,Never>?; private var accountMonitoringTask: Task<Void,Never>?; private var isRefreshingAccount = false; private var isRefreshingThreads = false
     var bindingKind: BindingKind { SettingsStore.shared.binding }
     var selectedThreadID: String? { SettingsStore.shared.selectedThreadID }
     var activeQuotaWindow: RateWindow? {
@@ -46,7 +104,7 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
                     await client.setNotificationHandler { [weak self] notification in await self?.handle(notification) }
                     await client.setDisconnectHandler { [weak self] in await self?.handleServerExit() }
                     try await client.connect(path:path, experimental:SettingsStore.shared.experimental)
-                    connection = .connected; panelState = .collapsedIdle; errorMessage = nil; onPanelStateChange?(); await refresh()
+                    connection = .connected; panelState = PanelPresentationPolicy.connectedState(from:panelState); errorMessage = nil; onPanelStateChange?(); await refresh()
                     guard connection == .connected else { return }
                     startMonitoring(); return
                 } catch {
@@ -54,7 +112,7 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
                     if attempt < 4 { try? await Task.sleep(for:.seconds(backoff.delay(attempt:attempt))) }
                 }
             }
-            connection = .error; panelState = .error; publishUnavailableIfNeeded(errorMessage ?? "Codex App Server 连接失败"); onPanelStateChange?()
+            connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); publishUnavailableIfNeeded(errorMessage ?? "Codex App Server 连接失败"); onPanelStateChange?()
         }
     }
     private func handle(_ notification: RPCResponse) {
@@ -165,7 +223,7 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
         realtimeStatuses["mock-running"] = .init(threadID:"mock-running",type:"active",activeFlags:[],updatedAt:now)
         contextSnapshots["mock-running"] = .init(threadID:"mock-running",total:.init(input:18240,cachedInput:9120,output:4280,reasoningOutput:1360),last:.init(input:1240,cachedInput:620,output:380,reasoningOutput:160),modelContextWindow:200000,updatedAt:now)
         usageSummary = .init(buckets:(0..<30).map { .init(startDate:Calendar.current.date(byAdding:.day,value:-$0,to:now)!,tokens:1000+$0*25) },lifetimeTokens:42000,peakDailyTokens:3200)
-        planType = "mock"; credits = nil; availableResetCredits = 2; lastUpdated = now; threadDataUpdatedAt = now; isMockData = true; connection = .connected; panelState = .collapsedIdle; reconnectTask = nil
+        planType = "mock"; credits = nil; availableResetCredits = 2; lastUpdated = now; threadDataUpdatedAt = now; isMockData = true; connection = .connected; panelState = PanelPresentationPolicy.connectedState(from:panelState); reconnectTask = nil
         publishWidgetSnapshot(window:activeQuotaWindow, account:.init(windows:windows,planType:planType,credits:nil,primaryWindow:activeQuotaWindow,availableResetCredits:availableResetCredits)); onPanelStateChange?()
     }
     func reconnect() {
@@ -196,7 +254,7 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
     private func handleServerExit() {
         guard connection == .connected else { return }
         stopMonitoring()
-        connection = .error; panelState = .error; errorMessage = "App Server 意外退出，正在重新连接"; onPanelStateChange?()
+        connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); errorMessage = "App Server 意外退出，正在重新连接"; onPanelStateChange?()
         recoveryTask?.cancel()
         recoveryTask = Task { [weak self] in
             try? await Task.sleep(for:.seconds(1)); guard !Task.isCancelled, let self else { return }
@@ -220,22 +278,26 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
         return true
     }
     private func restoreCachedQuotaIfNeeded() {
-        guard windows.isEmpty,
-              let snapshot = try? widgetStore.read(),
-              snapshot.availability == .available,
-              let remaining = snapshot.normalizedRemainingPercent else { return }
-        windows = [.init(
-            id:"cached-codex-primary",
-            limitName:"Codex",
-            usedPercent:100 - remaining,
-            windowDurationMins:snapshot.windowDurationMins,
-            resetsAt:snapshot.resetsAt,
-            limitID:"codex",
-            role:.primary
-        )]
-        planType = snapshot.planType
-        availableResetCredits = snapshot.availableResetCredits
-        lastUpdated = snapshot.updatedAt
+        let widgetSnapshots = widgetSnapshots
+        Task { [weak self] in
+            guard let snapshot = await widgetSnapshots.read(),
+                  snapshot.availability == .available,
+                  let remaining = snapshot.normalizedRemainingPercent,
+                  let self,
+                  windows.isEmpty else { return }
+            windows = [.init(
+                id:"cached-codex-primary",
+                limitName:"Codex",
+                usedPercent:100 - remaining,
+                windowDurationMins:snapshot.windowDurationMins,
+                resetsAt:snapshot.resetsAt,
+                limitID:"codex",
+                role:.primary
+            )]
+            planType = snapshot.planType
+            availableResetCredits = snapshot.availableResetCredits
+            lastUpdated = snapshot.updatedAt
+        }
     }
     private func publishWidgetSnapshot(window: RateWindow?, account: AccountSnapshot) {
         guard let window else { publishUnavailableIfNeeded("当前账户未返回 Codex 额度"); return }
@@ -249,25 +311,12 @@ enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, 
             availability:.available,
             errorMessage:nil
         )
-        do {
-            let previous = try widgetStore.read()
-            try widgetStore.write(snapshot)
-            if !hasReloadedWidgetThisSession || snapshot.materiallyDiffers(from:previous) {
-                WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
-                hasReloadedWidgetThisSession = true
-            }
-        } catch {
-            // SwiftPM and unsigned development builds do not have an App Group container.
-        }
+        let widgetSnapshots = widgetSnapshots
+        Task { await widgetSnapshots.publish(snapshot) }
     }
     private func publishUnavailableIfNeeded(_ message: String) {
-        do {
-            guard try widgetStore.read() == nil else { return }
-            try widgetStore.write(.unavailable(message))
-            WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
-        } catch {
-            // Keep the host functional when signing/App Group setup is incomplete.
-        }
+        let widgetSnapshots = widgetSnapshots
+        Task { await widgetSnapshots.publishUnavailableIfNeeded(message) }
     }
     var hasRecentThreadActivity: Bool { guard let updated=threads.first?.updatedAt else { return false }; return Date.now.timeIntervalSince(updated) < 20 }
 }

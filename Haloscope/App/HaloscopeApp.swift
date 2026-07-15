@@ -36,7 +36,6 @@ import AppKit
         return false
     }
     private func showIslandFromWidget() {
-        NSApp.activate(ignoringOtherApps:false)
         controller?.showFromWidget()
     }
     private func offerLaunchAtLoginIfNeeded() {
