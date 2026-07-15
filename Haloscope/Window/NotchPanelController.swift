@@ -52,16 +52,27 @@ struct PanelEventRoutingPolicy {
     }
 }
 
+struct PanelPrimaryClickRoutingPolicy {
+    static let maximumClickTravel: CGFloat = 5
+
+    static func shouldOpenCodex(state: PanelState, start: NSPoint?, end: NSPoint) -> Bool {
+        guard state == .expanded, let start else { return false }
+        return hypot(end.x-start.x,end.y-start.y) <= maximumClickTravel
+    }
+}
+
 @MainActor final class NotchPanelController: NSObject {
     let panel: IslandPanel; let model: IslandViewModel
     private var outsideMonitor: Any?
     private var keyMonitor: Any?
     private var localMouseMonitor: Any?
     private var globalMouseMonitor: Any?
+    private var primaryClickMonitor: Any?
     private var collapseTask: Task<Void,Never>?
     private var pointerTrackingTimer: Timer?
     private weak var targetScreen: NSScreen?
     private var isPointerInside = false
+    private var primaryClickStart: NSPoint?
     init(model: IslandViewModel) {
         self.model = model
         panel = IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
@@ -79,6 +90,10 @@ struct PanelEventRoutingPolicy {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching:.keyDown) { [weak self] event in
             guard event.keyCode == 53, self?.model.panelState == .expanded else { return event }
             self?.model.collapse(); return nil
+        }
+        primaryClickMonitor = NSEvent.addLocalMonitorForEvents(matching:[.leftMouseDown,.leftMouseDragged,.leftMouseUp]) { [weak self] event in
+            self?.handlePrimaryMouseEvent(event)
+            return event
         }
         NotificationCenter.default.addObserver(self, selector:#selector(screenParametersChanged), name:NSApplication.didChangeScreenParametersNotification, object:nil)
     }
@@ -203,6 +218,30 @@ struct PanelEventRoutingPolicy {
         NSApp.activate(ignoringOtherApps:true)
         panel.makeKey()
     }
+    private func handlePrimaryMouseEvent(_ event: NSEvent) {
+        guard event.window === panel else { primaryClickStart = nil; return }
+        switch event.type {
+        case .leftMouseDown:
+            primaryClickStart = model.panelState == .expanded ? event.locationInWindow:nil
+        case .leftMouseDragged:
+            guard PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.expanded,start:primaryClickStart,end:event.locationInWindow) else {
+                primaryClickStart = nil
+                return
+            }
+        case .leftMouseUp:
+            let shouldOpen = PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:model.panelState,start:primaryClickStart,end:event.locationInWindow)
+            primaryClickStart = nil
+            guard shouldOpen else { return }
+            Task { @MainActor [weak self] in
+                await Task.yield()
+                guard let self else { return }
+                self.model.collapse()
+                if !CodexDesktopApplication.open() { NSSound.beep() }
+            }
+        default:
+            break
+        }
+    }
     func stop() {
         collapseTask?.cancel()
         pointerTrackingTimer?.invalidate(); pointerTrackingTimer = nil
@@ -210,6 +249,7 @@ struct PanelEventRoutingPolicy {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor); self.keyMonitor = nil }
         if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor); self.localMouseMonitor = nil }
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor); self.globalMouseMonitor = nil }
+        if let primaryClickMonitor { NSEvent.removeMonitor(primaryClickMonitor); self.primaryClickMonitor = nil }
         NotificationCenter.default.removeObserver(self); panel.orderOut(nil)
     }
 }

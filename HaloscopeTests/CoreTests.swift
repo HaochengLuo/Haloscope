@@ -2,6 +2,19 @@ import XCTest
 @testable import Haloscope
 
 final class CoreTests: XCTestCase {
+    @MainActor func testCodexDesktopApplicationUsesCanonicalBundleIdentifier() {
+        let expected=URL(fileURLWithPath:"/Applications/Codex.app")
+        var requestedIdentifier:String?
+        let resolved=CodexDesktopApplication.resolve { identifier in requestedIdentifier=identifier; return expected }
+        XCTAssertEqual(requestedIdentifier,"com.openai.codex")
+        XCTAssertEqual(resolved,expected)
+    }
+    func testWidgetDeepLinksAcceptCurrentAndLegacySchemes() throws {
+        XCTAssertTrue(HaloscopeDeepLink.handles(try XCTUnwrap(URL(string:"haloscope-widget://open"))))
+        XCTAssertTrue(HaloscopeDeepLink.handles(try XCTUnwrap(URL(string:"HALOSCOPE://open"))))
+        XCTAssertTrue(HaloscopeDeepLink.handles(try XCTUnwrap(URL(string:"codexisland://open"))))
+        XCTAssertFalse(HaloscopeDeepLink.handles(try XCTUnwrap(URL(string:"https://example.com"))))
+    }
     func testJSONRPCFraming() throws {
         let line = #"{"jsonrpc":"2.0","id":7,"result":{"ok":true}}"#.data(using:.utf8)!
         let value = try JSONDecoder().decode(RPCResponse.self, from:line)
@@ -90,6 +103,13 @@ final class CoreTests: XCTestCase {
         XCTAssertTrue(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:false))
         XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:true,pointerInside:false))
         XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:true))
+    }
+    @MainActor func testExpandedPanelClickRoutingIgnoresDragsAndCollapsedState() {
+        let start=NSPoint(x:20,y:20)
+        XCTAssertTrue(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.expanded,start:start,end:NSPoint(x:23,y:24)))
+        XCTAssertFalse(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.expanded,start:start,end:NSPoint(x:40,y:20)))
+        XCTAssertFalse(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.collapsedIdle,start:start,end:start))
+        XCTAssertFalse(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.expanded,start:nil,end:start))
     }
     func testConnectionTransitionsPreserveInteractivePanelPresentation() {
         XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.expanded),.expanded)
