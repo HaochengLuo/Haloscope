@@ -1,6 +1,23 @@
 import SwiftUI
 import AppKit
 
+enum HaloscopeDeepLink {
+    static let widgetScheme = "haloscope-widget"
+    static let legacyHaloscopeScheme = "haloscope"
+    static let legacyCodexIslandScheme = "codexisland"
+
+    private static let supportedSchemes = Set([
+        widgetScheme,
+        legacyHaloscopeScheme,
+        legacyCodexIslandScheme
+    ])
+
+    static func handles(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased() else { return false }
+        return supportedSchemes.contains(scheme)
+    }
+}
+
 @main struct HaloscopeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene { Settings { SettingsView() } }
@@ -13,6 +30,7 @@ import AppKit
         // live Codex connection out of that process so tests stay deterministic.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         NSApp.setActivationPolicy(.accessory); controller = NotchPanelController(model:model); model.connect()
+        migrateLegacyWidgetDeepLinkIfNeeded()
         NSWorkspace.shared.notificationCenter.addObserver(self,selector:#selector(didWake),name:NSWorkspace.didWakeNotification,object:nil)
         NSWorkspace.shared.notificationCenter.addObserver(self,selector:#selector(willSleep),name:NSWorkspace.willSleepNotification,object:nil)
         NotificationCenter.default.addObserver(self,selector:#selector(openSettings),name:.haloscopeOpenSettings,object:nil)
@@ -28,7 +46,7 @@ import AppKit
         NSApp.activate(ignoringOtherApps:true); settingsWindow?.makeKeyAndOrderFront(nil)
     }
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard urls.contains(where:{ $0.scheme?.caseInsensitiveCompare("haloscope") == .orderedSame }) else { return }
+        guard urls.contains(where:HaloscopeDeepLink.handles) else { return }
         showIslandFromWidget()
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -37,6 +55,21 @@ import AppKit
     }
     private func showIslandFromWidget() {
         controller?.showFromWidget()
+    }
+    private func migrateLegacyWidgetDeepLinkIfNeeded() {
+        let migrationKey = "legacyCodexIslandWidgetDeepLinkMigration.v1"
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey:migrationKey) else { return }
+
+        NSWorkspace.shared.setDefaultApplication(
+            at:Bundle.main.bundleURL,
+            toOpenURLsWithScheme:HaloscopeDeepLink.legacyCodexIslandScheme
+        ) { error in
+            guard error == nil else { return }
+            Task { @MainActor in
+                UserDefaults.standard.set(true,forKey:migrationKey)
+            }
+        }
     }
     private func offerLaunchAtLoginIfNeeded() {
         let settings = SettingsStore.shared, service = LoginItemService()

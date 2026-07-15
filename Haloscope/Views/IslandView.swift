@@ -214,7 +214,7 @@ struct IslandView: View {
         .clipShape(panelShape)
         .foregroundStyle(.white).contentShape(Rectangle())
         .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .linear(duration:0.10) : .spring(response:0.46,dampingFraction:0.72,blendDuration:0.08),value:model.panelState)
-        .contextMenu { Button("立即刷新") { Task { await model.refresh() } }; Button("展开详情") { model.expandPinned() }; Button("设置") { NotificationCenter.default.post(name:.haloscopeOpenSettings,object:nil) }; Divider(); Button("重新连接 Codex") { model.reconnect() }; Button("退出 Haloscope") { NSApplication.shared.terminate(nil) } }
+        .contextMenu { Button("打开 Codex Desktop",action:openCodexDesktop); Divider(); Button("立即刷新") { Task { await model.refresh() } }; Button("展开详情") { model.expandPinned() }; Button("设置") { NotificationCenter.default.post(name:.haloscopeOpenSettings,object:nil) }; Divider(); Button("重新连接 Codex") { model.reconnect() }; Button("退出 Haloscope") { NSApplication.shared.terminate(nil) } }
     }
     private var isExpanded: Bool { model.panelState == .expanded }
     private var hasPhysicalNotch: Bool { model.notchGeometry?.hasPhysicalNotch == true }
@@ -263,6 +263,7 @@ struct IslandView: View {
     private var connectionLabel:String { model.connection == .connected ? "持久化线程 · 每 5 秒刷新":model.connection.rawValue }
     private var statusColor:Color { switch model.connection { case .error:.red; case .connecting:.yellow; case .connected:model.hasRecentThreadActivity ? .yellow:.gray; case .disconnected:.gray } }
     private var statusText:String { model.connection == .connected ? (model.hasRecentThreadActivity ? "最近活动 · 推断":"无活动") : model.connection.rawValue }
+    private func openCodexDesktop() { model.collapse(); if !CodexDesktopApplication.open() { NSSound.beep() } }
 }
 
 extension Notification.Name { static let haloscopeOpenSettings = Notification.Name("Haloscope.OpenSettings") }

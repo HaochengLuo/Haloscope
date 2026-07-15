@@ -60,7 +60,7 @@ struct CodexQuotaWidgetView: View {
         .containerBackground(for:.widget) {
             Color.clear
         }
-        .widgetURL(URL(string:"haloscope://open"))
+        .widgetURL(URL(string:"haloscope-widget://open"))
     }
 
     private var header: some View {

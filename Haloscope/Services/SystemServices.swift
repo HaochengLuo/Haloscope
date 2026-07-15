@@ -2,6 +2,24 @@ import AppKit
 import Foundation
 import ServiceManagement
 
+@MainActor enum CodexDesktopApplication {
+    static let bundleIdentifier = "com.openai.codex"
+
+    static func resolve(using applicationURL: (String) -> URL?) -> URL? {
+        applicationURL(bundleIdentifier)
+    }
+
+    @discardableResult static func open(workspace: NSWorkspace = .shared) -> Bool {
+        guard let applicationURL = resolve(using:{ workspace.urlForApplication(withBundleIdentifier:$0) }) else { return false }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+        configuration.addsToRecentItems = false
+        configuration.createsNewApplicationInstance = false
+        workspace.openApplication(at:applicationURL,configuration:configuration) { _,_ in }
+        return true
+    }
+}
+
 struct CodexProcessResolver: Sendable {
     func resolve(custom: String?, home: String = NSHomeDirectory(), executable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }) -> String? {
         let candidates = [custom, "\(home)/.local/bin/codex", "/opt/homebrew/bin/codex", "/usr/local/bin/codex", "/usr/bin/codex"].compactMap { $0 }
