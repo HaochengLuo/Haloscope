@@ -10,6 +10,9 @@ final class IslandPanel: NSPanel {
 final class PointerTrackingHostingView: NSHostingView<IslandView> {
     var onEnter: (() -> Void)?; var onExit: (() -> Void)?
     private var area: NSTrackingArea?
+    override var acceptsFirstResponder: Bool { true }
+    override var needsPanelToBecomeKey: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let area { removeTrackingArea(area) }
@@ -20,17 +23,30 @@ final class PointerTrackingHostingView: NSHostingView<IslandView> {
     override func mouseExited(with event: NSEvent) { onExit?() }
 }
 
+struct PanelEventRoutingPolicy {
+    static func isInteractive(_ state: PanelState) -> Bool {
+        state == .expanded || state == .settingsPresented
+    }
+
+    static func shouldOwnKey(_ state: PanelState, pointerInside: Bool) -> Bool {
+        pointerInside && isInteractive(state)
+    }
+}
+
 @MainActor final class NotchPanelController: NSObject {
     let panel: IslandPanel; let model: IslandViewModel
     private var outsideMonitor: Any?
     private var keyMonitor: Any?
     private var collapseTask: Task<Void,Never>?
+    private var keyRecoveryTask: Task<Void,Never>?
     private weak var targetScreen: NSScreen?
+    private var isPointerInside = false
     init(model: IslandViewModel) {
         self.model = model
         panel = IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
         super.init(); panel.isOpaque = false; panel.backgroundColor = .clear; panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.hasShadow = true
+        panel.isFloatingPanel = true; panel.hidesOnDeactivate = false; panel.becomesKeyOnlyIfNeeded = true
         let hosting = PointerTrackingHostingView(rootView:IslandView(model:model))
         hosting.onEnter = { [weak self] in Task { @MainActor in self?.pointerEntered() } }
         hosting.onExit = { [weak self] in Task { @MainActor in self?.pointerExited() } }
@@ -45,6 +61,7 @@ final class PointerTrackingHostingView: NSHostingView<IslandView> {
             self?.model.collapse(); return nil
         }
         NotificationCenter.default.addObserver(self, selector:#selector(screenParametersChanged), name:NSApplication.didChangeScreenParametersNotification, object:nil)
+        NotificationCenter.default.addObserver(self, selector:#selector(panelDidResignKey), name:NSWindow.didResignKeyNotification, object:panel)
     }
     @objc private func screenParametersChanged() { recalculateGeometry() }
     func recalculateGeometry() {
@@ -65,13 +82,13 @@ final class PointerTrackingHostingView: NSHostingView<IslandView> {
         guard let geometry = model.notchGeometry else { return }
         var frame = model.panelState == .expanded ? geometry.expandedPanelFrame : geometry.collapsedPanelFrame
         if model.panelState == .collapsedHover { frame = frame.insetBy(dx:-8,dy:0) }
-        panel.interactionEnabled = model.panelState == .expanded || model.panelState == .settingsPresented
+        panel.interactionEnabled = PanelEventRoutingPolicy.isInteractive(model.panelState)
         if animated {
             if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { animateReducedMotion(to:frame) }
             else if model.panelState == .expanded { animateExpansion(to:frame) }
             else { animateCollapse(to:frame) }
         } else { panel.setFrame(frame,display:true) }
-        panel.orderFrontRegardless()
+        synchronizeEventRouting()
     }
     private func animateExpansion(to frame: CGRect) {
         NSAnimationContext.runAnimationGroup { context in
@@ -106,11 +123,17 @@ final class PointerTrackingHostingView: NSHostingView<IslandView> {
         }
     }
     private func pointerEntered() {
-        collapseTask?.cancel(); collapseTask = nil
+        isPointerInside = true; collapseTask?.cancel(); collapseTask = nil
+        if PanelEventRoutingPolicy.isInteractive(model.panelState) {
+            synchronizeEventRouting()
+            return
+        }
         guard model.panelState == .collapsedIdle || model.panelState == .collapsedHover else { return }
         model.isPinnedExpanded = false; model.panelState = .expanded; model.refreshIfStale(); resize()
     }
     private func pointerExited() {
+        isPointerInside = false; keyRecoveryTask?.cancel(); keyRecoveryTask = nil
+        synchronizeEventRouting()
         guard model.panelState == .expanded || model.panelState == .collapsedHover else { return }
         guard !model.isPinnedExpanded else { return }
         collapseTask?.cancel(); collapseTask = Task { [weak self] in
@@ -118,8 +141,29 @@ final class PointerTrackingHostingView: NSHostingView<IslandView> {
             self?.model.panelState = .collapsedIdle; self?.resize()
         }
     }
+    private func synchronizeEventRouting() {
+        keyRecoveryTask?.cancel(); keyRecoveryTask = nil
+        guard PanelEventRoutingPolicy.shouldOwnKey(model.panelState,pointerInside:isPointerInside) else {
+            if panel.isKeyWindow { panel.resignKey() }
+            panel.orderFrontRegardless()
+            return
+        }
+        panel.makeKeyAndOrderFront(nil)
+        if let contentView = panel.contentView { panel.makeFirstResponder(contentView) }
+    }
+    @objc private func panelDidResignKey() {
+        guard PanelEventRoutingPolicy.shouldOwnKey(model.panelState,pointerInside:isPointerInside) else { return }
+        keyRecoveryTask?.cancel()
+        keyRecoveryTask = Task { [weak self] in
+            await Task.yield()
+            guard !Task.isCancelled, let self,
+                  PanelEventRoutingPolicy.shouldOwnKey(self.model.panelState,pointerInside:self.isPointerInside) else { return }
+            self.panel.makeKeyAndOrderFront(nil)
+            if let contentView = self.panel.contentView { self.panel.makeFirstResponder(contentView) }
+        }
+    }
     func stop() {
-        collapseTask?.cancel()
+        collapseTask?.cancel(); keyRecoveryTask?.cancel()
         if let outsideMonitor { NSEvent.removeMonitor(outsideMonitor); self.outsideMonitor = nil }
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor); self.keyMonitor = nil }
         NotificationCenter.default.removeObserver(self); panel.orderOut(nil)
