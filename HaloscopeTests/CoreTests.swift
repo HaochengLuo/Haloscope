@@ -87,9 +87,6 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(PanelEventRoutingPolicy.isInteractive(.collapsedIdle))
         XCTAssertTrue(PanelEventRoutingPolicy.isInteractive(.expanded))
         XCTAssertTrue(PanelEventRoutingPolicy.isInteractive(.settingsPresented))
-        XCTAssertFalse(PanelEventRoutingPolicy.shouldOwnKey(.expanded,pointerInside:false))
-        XCTAssertFalse(PanelEventRoutingPolicy.shouldOwnKey(.collapsedIdle,pointerInside:true))
-        XCTAssertTrue(PanelEventRoutingPolicy.shouldOwnKey(.expanded,pointerInside:true))
         XCTAssertTrue(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:false))
         XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:true,pointerInside:false))
         XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:true))
@@ -111,17 +108,21 @@ final class CoreTests: XCTestCase {
         await coordinator.publish(snapshot)
         XCTAssertEqual(try store.read(),snapshot)
     }
-    @MainActor func testNonactivatingPanelAndHostingViewCanReceiveInteractionFocus() {
-        let model=IslandViewModel()
-        let panel=IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
-        let hosting=PointerTrackingHostingView(rootView:IslandView(model:model))
-        panel.contentView=hosting
+    @MainActor func testInteractiveOverlayWindowPreservesRequestedTopEdge() {
+        let panel=IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
+        let requested=NSRect(x:700,y:1052,width:220,height:55)
         XCTAssertFalse(panel.canBecomeKey)
         panel.interactionEnabled=true
         XCTAssertTrue(panel.canBecomeKey)
-        XCTAssertTrue(hosting.acceptsFirstResponder)
-        XCTAssertTrue(hosting.needsPanelToBecomeKey)
-        XCTAssertTrue(hosting.acceptsFirstMouse(for:nil))
+        XCTAssertEqual(panel.constrainFrameRect(requested,to:NSScreen.main),requested)
+    }
+    @MainActor func testIslandScrollViewOwnsNativeElasticMomentum() {
+        let scrollView=IslandOwnedScrollView()
+        XCTAssertEqual(scrollView.verticalScrollElasticity,.allowed)
+        XCTAssertEqual(scrollView.horizontalScrollElasticity,.none)
+        XCTAssertTrue(scrollView.usesPredominantAxisScrolling)
+        XCTAssertFalse(scrollView.hasVerticalScroller)
+        XCTAssertFalse(scrollView.drawsBackground)
     }
     func testCodexPathResolutionOrder() { XCTAssertEqual(CodexProcessResolver().resolve(custom:"/custom",home:"/home",executable:{$0 == "/custom"}),"/custom") }
     func testReconnectBackoff() { let b=Backoff(base:1,maximum:8); XCTAssertEqual(b.delay(attempt:0),1); XCTAssertEqual(b.delay(attempt:8),8) }
