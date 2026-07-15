@@ -90,6 +90,26 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(PanelEventRoutingPolicy.shouldOwnKey(.expanded,pointerInside:false))
         XCTAssertFalse(PanelEventRoutingPolicy.shouldOwnKey(.collapsedIdle,pointerInside:true))
         XCTAssertTrue(PanelEventRoutingPolicy.shouldOwnKey(.expanded,pointerInside:true))
+        XCTAssertTrue(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:false))
+        XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:true,pointerInside:false))
+        XCTAssertFalse(PanelEventRoutingPolicy.shouldCollapse(.expanded,isPinned:false,pointerInside:true))
+    }
+    func testConnectionTransitionsPreserveInteractivePanelPresentation() {
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.expanded),.expanded)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.expanded),.expanded)
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.settingsPresented),.settingsPresented)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.settingsPresented),.settingsPresented)
+        XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.error),.collapsedIdle)
+        XCTAssertEqual(PanelPresentationPolicy.failedState(from:.collapsedIdle),.error)
+    }
+    func testWidgetSnapshotCoordinatorPersistsSnapshots() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        defer { try? FileManager.default.removeItem(at:directory) }
+        let store = WidgetQuotaSnapshotStore(directoryURL:directory)
+        let coordinator = WidgetSnapshotCoordinator(store:store,reloadTimelines:{})
+        let snapshot = WidgetQuotaSnapshot(remainingPercent:64,windowDurationMins:10080,resetsAt:nil,availableResetCredits:2,planType:"plus",updatedAt:Date(timeIntervalSince1970:1_750_000_000),availability:.available,errorMessage:nil)
+        await coordinator.publish(snapshot)
+        XCTAssertEqual(try store.read(),snapshot)
     }
     @MainActor func testNonactivatingPanelAndHostingViewCanReceiveInteractionFocus() {
         let model=IslandViewModel()

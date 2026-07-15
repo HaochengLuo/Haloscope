@@ -31,6 +31,10 @@ struct PanelEventRoutingPolicy {
     static func shouldOwnKey(_ state: PanelState, pointerInside: Bool) -> Bool {
         pointerInside && isInteractive(state)
     }
+
+    static func shouldCollapse(_ state: PanelState, isPinned: Bool, pointerInside: Bool) -> Bool {
+        !isPinned && !pointerInside && (state == .expanded || state == .collapsedHover)
+    }
 }
 
 @MainActor final class NotchPanelController: NSObject {
@@ -80,6 +84,7 @@ struct PanelEventRoutingPolicy {
     }
     func resize(animated: Bool = true) {
         guard let geometry = model.notchGeometry else { return }
+        if model.isPinnedExpanded { collapseTask?.cancel(); collapseTask = nil }
         var frame = model.panelState == .expanded ? geometry.expandedPanelFrame : geometry.collapsedPanelFrame
         if model.panelState == .collapsedHover { frame = frame.insetBy(dx:-8,dy:0) }
         panel.interactionEnabled = PanelEventRoutingPolicy.isInteractive(model.panelState)
@@ -138,7 +143,13 @@ struct PanelEventRoutingPolicy {
         guard !model.isPinnedExpanded else { return }
         collapseTask?.cancel(); collapseTask = Task { [weak self] in
             try? await Task.sleep(for:.milliseconds(180)); guard !Task.isCancelled else { return }
-            self?.model.panelState = .collapsedIdle; self?.resize()
+            guard let self,
+                  PanelEventRoutingPolicy.shouldCollapse(
+                    self.model.panelState,
+                    isPinned:self.model.isPinnedExpanded,
+                    pointerInside:self.isPointerInside
+                  ) else { return }
+            self.model.panelState = .collapsedIdle; self.resize()
         }
     }
     private func synchronizeEventRouting() {
