@@ -44,7 +44,19 @@ struct CodexExecutableInspector: Sendable {
     }
 }
 
-enum LoginItemStatus: String { case enabled, notRegistered, requiresApproval, notFound, unavailable }
+enum LoginItemStatus: String {
+    case enabled, notRegistered, requiresApproval, notFound, unavailable
+
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .enabled: L10n.text("login.enabled",language:language)
+        case .notRegistered: L10n.text("login.not_registered",language:language)
+        case .requiresApproval: L10n.text("login.requires_approval",language:language)
+        case .notFound: L10n.text("login.not_found",language:language)
+        case .unavailable: L10n.text("login.unavailable",language:language)
+        }
+    }
+}
 @MainActor final class LoginItemService {
     func status() -> LoginItemStatus {
         switch SMAppService.mainApp.status { case .enabled: .enabled; case .notRegistered: .notRegistered; case .requiresApproval: .requiresApproval; case .notFound: .notFound; @unknown default: .unavailable }
@@ -59,6 +71,13 @@ struct Backoff: Sendable {
 
 @MainActor final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
+    @Published var language = AppLanguage.system {
+        didSet {
+            defaults.set(language.rawValue,forKey:SharedLanguagePreference.defaultsKey)
+            SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
+            NotificationCenter.default.post(name:.haloscopeLanguageDidChange,object:language)
+        }
+    }
     @Published var customCodexPath: String? { didSet { defaults.set(customCodexPath, forKey:"codexPath") } }
     @Published var experimental = false { didSet { defaults.set(experimental, forKey:"experimental") } }
     @Published var clickOutside = true { didSet { defaults.set(clickOutside, forKey:"clickOutside") } }
@@ -67,15 +86,19 @@ struct Backoff: Sendable {
     @Published var binding = BindingKind.recent { didSet { defaults.set(binding.rawValue, forKey:"binding") } }
     @Published var selectedThreadID: String? { didSet { defaults.set(selectedThreadID, forKey:"selectedThreadID") } }
     private let defaults: UserDefaults
+    private let widgetDefaults: UserDefaults?
     var hasOfferedLaunchAtLogin: Bool { defaults.bool(forKey:"didOfferLaunchAtLogin") }
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, widgetDefaults: UserDefaults? = SharedLanguagePreference.widgetDefaults()) {
         self.defaults = defaults
+        self.widgetDefaults = widgetDefaults
+        language = SharedLanguagePreference.read(from:defaults)
         customCodexPath = defaults.string(forKey:"codexPath")
         experimental = defaults.bool(forKey:"experimental")
         clickOutside = defaults.object(forKey:"clickOutside") as? Bool ?? true
         mockMode = defaults.bool(forKey:"mockMode")
         binding = defaults.string(forKey:"binding").flatMap(BindingKind.init(rawValue:)) ?? .recent
         selectedThreadID = defaults.string(forKey:"selectedThreadID")
+        SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
     }
     func markLaunchAtLoginOffered() { defaults.set(true,forKey:"didOfferLaunchAtLogin") }
 }

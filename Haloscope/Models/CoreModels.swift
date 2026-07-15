@@ -1,9 +1,22 @@
 import Foundation
 
-enum ConnectionState: String, Codable, Sendable { case disconnected, connecting, connected, error }
+enum ConnectionState: String, Codable, Sendable {
+    case disconnected, connecting, connected, error
+
+    func localizedLabel(language: AppLanguage) -> String {
+        L10n.text("connection.\(rawValue)",language:language)
+    }
+}
 enum BindingKind: String, Codable, CaseIterable, Sendable {
     case manual, recent, running, project, unavailable
-    var label: String { switch self { case .manual: "手动绑定"; case .running: "自动识别"; case .recent, .project: "推断"; case .unavailable: "数据不可用" } }
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .manual: L10n.text("binding.manual",language:language)
+        case .running: L10n.text("binding.running",language:language)
+        case .recent, .project: L10n.text("binding.inferred",language:language)
+        case .unavailable: L10n.text("binding.unavailable",language:language)
+        }
+    }
 }
 enum ThreadState: String, Codable, Sendable { case notLoaded, idle, active, waiting, error, unknown }
 enum RateWindowRole: String, Codable, Sendable { case primary, secondary }
@@ -31,12 +44,12 @@ struct RateWindow: Codable, Equatable, Identifiable, Sendable {
     var role: RateWindowRole? = nil
     var remainingPercent: Double { min(100, max(0, 100 - usedPercent)) }
     var roundedRemainingPercent: Int { Int(remainingPercent.rounded()) }
-    var displayName: String {
+    func localizedDisplayName(language: AppLanguage) -> String {
         if let windowDurationMins {
-            if abs(windowDurationMins - 10080) <= 60 { return "7 天额度" }
-            return limitName ?? "\(windowDurationMins) 分钟额度"
+            if abs(windowDurationMins - 10080) <= 60 { return L10n.text("rate.seven_day",language:language) }
+            return limitName ?? L10n.format("rate.minutes",language:language,windowDurationMins)
         }
-        return limitName ?? "账户额度"
+        return limitName ?? L10n.text("rate.account",language:language)
     }
 }
 
