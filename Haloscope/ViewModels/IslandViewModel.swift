@@ -95,7 +95,7 @@ actor WidgetSnapshotCoordinator {
         reconnectTask = Task { [weak self] in
             guard let self else { return }; defer { reconnectTask = nil }
             guard let path = CodexProcessResolver().resolve(custom: SettingsStore.shared.customCodexPath) else {
-                connection = .error; errorMessage = "未找到 codex 可执行文件"; publishUnavailableIfNeeded(errorMessage!); return
+                connection = .error; errorMessage = t("error.codex_not_found"); publishUnavailableIfNeeded(errorMessage!); return
             }
             let backoff = Backoff()
             for attempt in 0..<5 {
@@ -108,11 +108,11 @@ actor WidgetSnapshotCoordinator {
                     guard connection == .connected else { return }
                     startMonitoring(); return
                 } catch {
-                    errorMessage = String(describing:error)
+                    errorMessage = friendly(error)
                     if attempt < 4 { try? await Task.sleep(for:.seconds(backoff.delay(attempt:attempt))) }
                 }
             }
-            connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); publishUnavailableIfNeeded(errorMessage ?? "Codex App Server 连接失败"); onPanelStateChange?()
+            connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); publishUnavailableIfNeeded(errorMessage ?? t("error.server_connection")); onPanelStateChange?()
         }
     }
     private func handle(_ notification: RPCResponse) {
@@ -181,7 +181,7 @@ actor WidgetSnapshotCoordinator {
             publishWidgetSnapshot(window:account.primaryWindow ?? activeQuotaWindow, account:account)
         } catch {
             if scheduleRecoveryIfNeeded(for:error) { return }
-            let message = "额度：\(friendly(error))"
+            let message = L10n.format("error.quota",language:SettingsStore.shared.language,friendly(error))
             if windows.isEmpty { failures.append(message); publishUnavailableIfNeeded(message) }
         }
         do { usageSummary = decoder.usage(try await requestWithTransientRetry("account/usage/read")) }
@@ -191,7 +191,7 @@ actor WidgetSnapshotCoordinator {
             // and let its section show an empty state on first launch rather than
             // replacing a valid quota display with a transient red RPC error.
         }
-        errorMessage = failures.isEmpty ? nil : failures.joined(separator:"；")
+        errorMessage = failures.isEmpty ? nil : failures.joined(separator:t("list.separator"))
     }
     private func requestWithTransientRetry(_ method: String, params: JSONValue = .object([:])) async throws -> JSONValue {
         var failureIndex = 0
@@ -213,13 +213,13 @@ actor WidgetSnapshotCoordinator {
             threads = CodexPayloadDecoder().threads(value); threadDataUpdatedAt = .now
         } catch {
             if scheduleRecoveryIfNeeded(for:error) { return }
-            if threads.isEmpty, windows.isEmpty { errorMessage = "线程刷新失败：\(friendly(error))" }
+            if threads.isEmpty, windows.isEmpty { errorMessage = L10n.format("error.thread_refresh",language:SettingsStore.shared.language,friendly(error)) }
         }
     }
     private func loadMockData() {
         let now = Date.now
         windows = [.init(id:"mock-primary",limitName:"Mock preview",usedPercent:12,windowDurationMins:10080,resetsAt:now.addingTimeInterval(432000),limitID:"codex",role:.primary)]
-        threads = [.init(id:"mock-running",preview:"Mock：正在执行的任务",cwd:"~/Projects/Demo",updatedAt:now,status:.active,tokenUsage:.init(input:1200,cachedInput:600,output:350,reasoningOutput:180)),.init(id:"mock-idle",preview:"Mock：历史对话",cwd:"~/Projects/Demo",updatedAt:now.addingTimeInterval(-1800),status:.idle)]
+        threads = [.init(id:"mock-running",preview:t("mock.running"),cwd:"~/Projects/Demo",updatedAt:now,status:.active,tokenUsage:.init(input:1200,cachedInput:600,output:350,reasoningOutput:180)),.init(id:"mock-idle",preview:t("mock.history"),cwd:"~/Projects/Demo",updatedAt:now.addingTimeInterval(-1800),status:.idle)]
         realtimeStatuses["mock-running"] = .init(threadID:"mock-running",type:"active",activeFlags:[],updatedAt:now)
         contextSnapshots["mock-running"] = .init(threadID:"mock-running",total:.init(input:18240,cachedInput:9120,output:4280,reasoningOutput:1360),last:.init(input:1240,cachedInput:620,output:380,reasoningOutput:160),modelContextWindow:200000,updatedAt:now)
         usageSummary = .init(buckets:(0..<30).map { .init(startDate:Calendar.current.date(byAdding:.day,value:-$0,to:now)!,tokens:1000+$0*25) },lifetimeTokens:42000,peakDailyTokens:3200)
@@ -243,7 +243,11 @@ actor WidgetSnapshotCoordinator {
         case .connecting: break
         }
     }
-    private func friendly(_ error: Error) -> String { (error as? LocalizedError)?.errorDescription ?? error.localizedDescription }
+    private func t(_ key: String) -> String { L10n.text(key,language:SettingsStore.shared.language) }
+    private func friendly(_ error: Error) -> String {
+        if let rpcError = error as? RPCError { return rpcError.localizedDescription(language:SettingsStore.shared.language) }
+        return (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+    }
     func toggleExpanded() { panelState = panelState == .expanded ? .collapsedIdle : .expanded; onPanelStateChange?() }
     func expandPinned() { isPinnedExpanded = true; panelState = .expanded; onPanelStateChange?(); refreshIfStale() }
     func collapse() { isPinnedExpanded = false; panelState = .collapsedIdle; onPanelStateChange?() }
@@ -254,7 +258,7 @@ actor WidgetSnapshotCoordinator {
     private func handleServerExit() {
         guard connection == .connected else { return }
         stopMonitoring()
-        connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); errorMessage = "App Server 意外退出，正在重新连接"; onPanelStateChange?()
+        connection = .error; panelState = PanelPresentationPolicy.failedState(from:panelState); errorMessage = t("error.server_exited"); onPanelStateChange?()
         recoveryTask?.cancel()
         recoveryTask = Task { [weak self] in
             try? await Task.sleep(for:.seconds(1)); guard !Task.isCancelled, let self else { return }
@@ -266,7 +270,7 @@ actor WidgetSnapshotCoordinator {
         if recoveryTask != nil { return true }
         stopMonitoring()
         connection = .connecting
-        errorMessage = windows.isEmpty ? "连接暂时中断，正在自动恢复…" : nil
+        errorMessage = windows.isEmpty ? t("error.recovering") : nil
         recoveryTask = Task { [weak self] in
             guard let self else { return }
             await client.disconnect()
@@ -300,7 +304,7 @@ actor WidgetSnapshotCoordinator {
         }
     }
     private func publishWidgetSnapshot(window: RateWindow?, account: AccountSnapshot) {
-        guard let window else { publishUnavailableIfNeeded("当前账户未返回 Codex 额度"); return }
+        guard let window else { publishUnavailableIfNeeded(t("error.quota_unavailable")); return }
         let snapshot = WidgetQuotaSnapshot(
             remainingPercent:window.remainingPercent,
             windowDurationMins:window.windowDurationMins,

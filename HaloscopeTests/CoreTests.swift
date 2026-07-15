@@ -60,7 +60,9 @@ final class CoreTests: XCTestCase {
     }
     func testQuotaWindowRecognitionAndRemaining() {
         let q = RateWindow(id:"codex",usedPercent:37,windowDurationMins:10080,resetsAt:.now)
-        XCTAssertEqual(q.displayName,"7 天额度"); XCTAssertEqual(q.remainingPercent,63); XCTAssertEqual(q.roundedRemainingPercent,63)
+        XCTAssertEqual(q.localizedDisplayName(language:.simplifiedChinese),"7 天额度")
+        XCTAssertEqual(q.localizedDisplayName(language:.english),"7-day quota")
+        XCTAssertEqual(q.remainingPercent,63); XCTAssertEqual(q.roundedRemainingPercent,63)
         var over=q; over.usedPercent=120; XCTAssertEqual(over.remainingPercent,0)
         var under=q; under.usedPercent = -10; XCTAssertEqual(under.remainingPercent,100)
     }
@@ -165,10 +167,23 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(policy.delay(afterFailure:0,error:RPCError.timeout))
     }
     @MainActor func testSettingsPersistence() {
-        let suite="HaloscopeTests-\(UUID())", d=UserDefaults(suiteName:suite)!; defer { d.removePersistentDomain(forName:suite) }
-        let s=SettingsStore(defaults:d); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"
-        let restored=SettingsStore(defaults:UserDefaults(suiteName:suite)!)
-        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1")
+        let suite="HaloscopeTests-\(UUID())", widgetSuite="HaloscopeWidgetTests-\(UUID())"
+        let d=UserDefaults(suiteName:suite)!, widgetDefaults=UserDefaults(suiteName:widgetSuite)!
+        defer { d.removePersistentDomain(forName:suite); widgetDefaults.removePersistentDomain(forName:widgetSuite) }
+        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english
+        let restored=SettingsStore(defaults:UserDefaults(suiteName:suite)!,widgetDefaults:widgetDefaults)
+        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english)
+        XCTAssertEqual(SharedLanguagePreference.read(from:widgetDefaults),.english)
+    }
+    func testLanguageResolutionAndTranslations() {
+        XCTAssertEqual(AppLanguage.system.resolved(preferredLanguages:["zh-Hans-CN"]),.simplifiedChinese)
+        XCTAssertEqual(AppLanguage.system.resolved(preferredLanguages:["en-US"]),.english)
+        XCTAssertEqual(AppLanguage.english.displayName(in:.simplifiedChinese),"English")
+        XCTAssertEqual(L10n.text("quota.section",language:.english),"Account Quota")
+        XCTAssertEqual(L10n.text("quota.section",language:.simplifiedChinese),"账户额度")
+        XCTAssertEqual(L10n.format("rate.minutes",language:.english,300),"300-minute quota")
+        XCTAssertEqual(L10n.text("settings.tab.codex",language:.english),"Codex")
+        XCTAssertEqual(L10n.text("settings.tab.display",language:.english),"Displays")
     }
     func testWidgetQuotaSnapshotStoreRoundTripAndStaleness() throws {
         let directory=FileManager.default.temporaryDirectory.appendingPathComponent("HaloscopeTests-\(UUID())",isDirectory:true)

@@ -58,11 +58,12 @@ enum WidgetQuotaStoreError: LocalizedError {
     case keychain(OSStatus)
 
     var errorDescription: String? {
-        switch self {
+        let language = SharedLanguagePreference.widgetLanguage()
+        return switch self {
         case .appGroupUnavailable(let identifier):
-            "无法访问共享容器 \(identifier)。请确认宿主和小组件使用同一签名团队。"
+            L10n.format("store.app_group",language:language,identifier)
         case .keychain(let status):
-            "无法访问共享钥匙串（OSStatus \(status)）。"
+            L10n.format("store.keychain",language:language,Int(status))
         }
     }
 }

@@ -27,11 +27,15 @@ struct RPCResponse: Decodable, Sendable { let id: Int?; let result: JSONValue?; 
 enum RPCError: Error { case timeout, disconnected, server(JSONValue), malformed }
 extension RPCError: LocalizedError {
     var errorDescription: String? {
+        localizedDescription(language:SharedLanguagePreference.read(from:.standard))
+    }
+
+    func localizedDescription(language: AppLanguage) -> String {
         switch self {
-        case .timeout: "请求超时"
-        case .disconnected: "App Server 已断开"
-        case .malformed: "App Server 返回了无法解析的响应"
-        case .server(let value): value["code"]?.intValue.map { "App Server 请求失败（错误码 \($0)）" } ?? "App Server 请求失败"
+        case .timeout: L10n.text("rpc.timeout",language:language)
+        case .disconnected: L10n.text("rpc.disconnected",language:language)
+        case .malformed: L10n.text("rpc.malformed",language:language)
+        case .server(let value): value["code"]?.intValue.map { L10n.format("rpc.server_code",language:language,$0) } ?? L10n.text("rpc.server",language:language)
         }
     }
 }

@@ -22,6 +22,8 @@
 		AA100000000000000000000D /* HaloscopeWidget/Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000C /* HaloscopeWidget/Localizable.xcstrings */; };
 		AA100000000000000000000E /* HaloscopeTests/CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000D /* HaloscopeTests/CoreTests.swift */; };
 		AA100000000000000000000F /* HaloscopeWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA3000000000000000000002 /* HaloscopeWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AB1000000000000000000001 /* Haloscope/Shared/Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */; };
+		AB1000000000000000000002 /* Haloscope/Shared/Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,6 +78,7 @@
 		AA3000000000000000000001 /* Haloscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Haloscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA3000000000000000000002 /* HaloscopeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HaloscopeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA3000000000000000000003 /* HaloscopeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HaloscopeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Shared/Localization.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +116,7 @@
 				AA2000000000000000000005 /* Haloscope/Models/CoreModels.swift */,
 				AA2000000000000000000006 /* Haloscope/Services/SystemServices.swift */,
 				AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */,
+				AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */,
 				AA2000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift */,
 				AA2000000000000000000009 /* Haloscope/Views/IslandView.swift */,
 				AA200000000000000000000A /* Haloscope/Window/NotchPanelController.swift */,
@@ -275,6 +279,7 @@
 				AA1000000000000000000005 /* Haloscope/Models/CoreModels.swift in Sources */,
 				AA1000000000000000000006 /* Haloscope/Services/SystemServices.swift in Sources */,
 				AA1000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
+				AB1000000000000000000001 /* Haloscope/Shared/Localization.swift in Sources */,
 				AA1000000000000000000008 /* Haloscope/ViewModels/IslandViewModel.swift in Sources */,
 				AA1000000000000000000009 /* Haloscope/Views/IslandView.swift in Sources */,
 				AA100000000000000000000A /* Haloscope/Window/NotchPanelController.swift in Sources */,
@@ -287,6 +292,7 @@
 			files = (
 				AA100000000000000000000B /* HaloscopeWidget/HaloscopeWidget.swift in Sources */,
 				AA100000000000000000000C /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
+				AB1000000000000000000002 /* Haloscope/Shared/Localization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

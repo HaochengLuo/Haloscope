@@ -47,6 +47,7 @@ struct CodexQuotaProvider: TimelineProvider {
 
 struct CodexQuotaWidgetView: View {
     var entry: CodexQuotaEntry
+    private var language: AppLanguage { SharedLanguagePreference.widgetLanguage() }
 
     var body: some View {
         GeometryReader { proxy in
@@ -60,6 +61,7 @@ struct CodexQuotaWidgetView: View {
         .containerBackground(for:.widget) {
             Color.clear
         }
+        .environment(\.locale,language.locale)
         .widgetURL(URL(string:"haloscope-widget://open"))
     }
 
@@ -172,14 +174,27 @@ struct CodexQuotaWidgetView: View {
     private var resetText: String {
         guard let reset = entry.snapshot.resetsAt else { return localized("widget.reset_unavailable") }
         guard reset > entry.date else { return localized("widget.waiting_refresh") }
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = reset.timeIntervalSince(entry.date) >= 86_400 ? [.day,.hour] : [.hour,.minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.maximumUnitCount = 2
-        formatter.zeroFormattingBehavior = .dropAll
-        formatter.calendar = .current
-        let remaining = formatter.string(from:entry.date,to:reset) ?? "—"
-        return String(format:localized("widget.resets_in"),locale:.current,remaining)
+        let remaining = remainingDescription(from:entry.date,to:reset)
+        return L10n.format("widget.resets_in",language:language,remaining)
+    }
+
+    private func remainingDescription(from start: Date,to end: Date) -> String {
+        let seconds = max(0,Int(end.timeIntervalSince(start)))
+        if seconds >= 86_400 {
+            let dayCount = seconds / 86_400
+            let hourCount = (seconds % 86_400) / 3_600
+            return hourCount > 0
+                ? L10n.format("widget.duration.days_hours",language:language,dayCount,hourCount)
+                : L10n.format("widget.duration.days",language:language,dayCount)
+        }
+        let hourCount = seconds / 3_600
+        let minuteCount = (seconds % 3_600) / 60
+        if hourCount > 0 {
+            return minuteCount > 0
+                ? L10n.format("widget.duration.hours_minutes",language:language,hourCount,minuteCount)
+                : L10n.format("widget.duration.hours",language:language,hourCount)
+        }
+        return L10n.format("widget.duration.minutes",language:language,minuteCount)
     }
 
 }
@@ -232,5 +247,5 @@ struct CodexWeeklyQuotaWidget: Widget {
 }
 
 private func localized(_ key: String) -> String {
-    NSLocalizedString(key,bundle:.main,comment:"")
+    L10n.text(key,language:SharedLanguagePreference.widgetLanguage())
 }
