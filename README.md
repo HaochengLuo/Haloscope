@@ -11,21 +11,21 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 ## Preview
 
 <p align="center">
-  <img src="docs/images/haloscope-widget.png" width="280" alt="Haloscope desktop widget showing the remaining seven-day Codex allowance and reset countdown">
+  <img src="docs/images/haloscope-widget-en.png" width="280" alt="Haloscope desktop widget showing the remaining seven-day Codex allowance and reset countdown">
 </p>
 
 <p align="center"><em>Liquid Glass desktop widget</em></p>
 
 <p align="center">
-  <img src="docs/images/haloscope-notch-compact.png" width="600" alt="Haloscope compact notch status showing recent activity and remaining seven-day allowance">
+  <img src="docs/images/haloscope-notch-compact-en.png" width="600" alt="Haloscope compact notch status showing recent activity and remaining seven-day allowance">
 </p>
 
 <p align="center"><em>Compact notch status</em></p>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/haloscope-panel-overview.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
-    <td width="50%"><img src="docs/images/haloscope-panel-activity.png" alt="Haloscope notch panel showing recent conversations and token statistics"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-en.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-en.png" alt="Haloscope notch panel showing recent conversations and token statistics"></td>
   </tr>
   <tr>
     <td align="center"><em>Account and task overview</em></td>
@@ -35,7 +35,7 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 
 ## Current status
 
-The project includes a Swift concurrency JSON-RPC client, mappings for real account, usage, and thread payloads, Codex executable discovery, notch geometry detection, an `NSPanel` interface, settings, login-item support, mock mode, and redacted diagnostics. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. Both the widget and notch panel use a Liquid Glass design, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
+The project includes a Swift concurrency JSON-RPC client, mappings for real account, usage, and thread payloads, Codex executable discovery, notch geometry detection, an `NSPanel` interface, settings, login-item support, mock mode, and redacted diagnostics. The interface can follow the system language or switch between English and Simplified Chinese at runtime. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. Both the widget and notch panel use a Liquid Glass design, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
 
 ## Build and run
 
