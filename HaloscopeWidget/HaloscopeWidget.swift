@@ -34,8 +34,16 @@ struct CodexQuotaProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CodexQuotaEntry>) -> Void) {
         let now = Date.now
-        let entry = CodexQuotaEntry(date:now,snapshot:loadSnapshot(preview:false))
-        completion(Timeline(entries:[entry],policy:.after(now.addingTimeInterval(30 * 60))))
+        let snapshot = loadSnapshot(preview:false)
+        let entries = WidgetTimelineSchedule.entryDates(now:now,resetAt:snapshot.resetsAt).map { date in
+            CodexQuotaEntry(date:date,snapshot:snapshot)
+        }
+        let policy: TimelineReloadPolicy = if let resetAt = snapshot.resetsAt, resetAt > now {
+            .after(resetAt)
+        } else {
+            .never
+        }
+        completion(Timeline(entries:entries,policy:policy))
     }
 
     private func loadSnapshot(preview: Bool) -> WidgetQuotaSnapshot {
@@ -51,8 +59,10 @@ struct CodexQuotaWidgetView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            if let percent = entry.snapshot.roundedRemainingPercent, entry.snapshot.availability == .available {
-                availableContent(percent,size:proxy.size)
+            if let remaining = entry.snapshot.normalizedRemainingPercent,
+               let percent = entry.snapshot.roundedRemainingPercent,
+               entry.snapshot.availability == .available {
+                availableContent(percent,remaining:remaining,size:proxy.size)
             } else {
                 unavailableContent(size:proxy.size)
             }
@@ -83,7 +93,7 @@ struct CodexQuotaWidgetView: View {
         }
     }
 
-    private func availableContent(_ percent: Int,size: CGSize) -> some View {
+    private func availableContent(_ percent: Int,remaining: Double,size: CGSize) -> some View {
         ZStack {
             header
                 .frame(width:max(0,size.width - 24))
@@ -105,7 +115,7 @@ struct CodexQuotaWidgetView: View {
                 .foregroundStyle(Color.white.opacity(0.80))
                 .position(x:size.width * 0.5,y:size.height * 0.625)
 
-            LiquidGlassProgressBar(value:Double(percent) / 100)
+            LiquidGlassProgressBar(value:remaining / 100)
                 .frame(width:max(0,size.width - 24),height:7.5)
                 .position(x:size.width * 0.5,y:size.height * 0.755)
 

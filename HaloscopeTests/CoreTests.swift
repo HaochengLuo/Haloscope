@@ -130,6 +130,31 @@ final class CoreTests: XCTestCase {
         await coordinator.publish(snapshot)
         XCTAssertEqual(try store.read(),snapshot)
     }
+    func testWidgetTimelineReloadPolicyRefreshesInitiallyAndOnVisibleChanges() {
+        let policy=WidgetTimelineReloadPolicy()
+        let now=Date(timeIntervalSince1970:1_800_000_000)
+        let snapshot=WidgetQuotaSnapshot(remainingPercent:64,windowDurationMins:10080,resetsAt:now.addingTimeInterval(3600),availableResetCredits:2,planType:"plus",updatedAt:now,availability:.available,errorMessage:nil)
+        XCTAssertTrue(policy.shouldReload(snapshot:snapshot,previous:nil,hasRequestedReload:false))
+        XCTAssertFalse(policy.shouldReload(snapshot:snapshot,previous:snapshot,hasRequestedReload:true))
+        var changed=snapshot; changed.remainingPercent=63
+        XCTAssertTrue(policy.shouldReload(snapshot:changed,previous:snapshot,hasRequestedReload:true))
+        changed=snapshot; changed.remainingPercent=63.9
+        XCTAssertFalse(policy.shouldReload(snapshot:changed,previous:snapshot,hasRequestedReload:true))
+    }
+    func testWidgetTimelineSchedulePrecomputesCountdownWithoutFrequentReloads() throws {
+        let now=Date(timeIntervalSince1970:1_800_000_000)
+        let reset=now.addingTimeInterval(7 * 24 * 60 * 60)
+        let dates=WidgetTimelineSchedule.entryDates(now:now,resetAt:reset)
+        XCTAssertEqual(dates.first,now)
+        XCTAssertEqual(dates.last,reset)
+        XCTAssertLessThanOrEqual(dates.count,WidgetTimelineSchedule.maximumEntryCount)
+        XCTAssertTrue(zip(dates,dates.dropFirst()).allSatisfy { $0.0 < $0.1 })
+        let finalDayDates=dates.filter { reset.timeIntervalSince($0) <= WidgetTimelineSchedule.fineWindow }
+        let finalDayIntervals=zip(finalDayDates,finalDayDates.dropFirst()).map { $1.timeIntervalSince($0) }
+        XCTAssertTrue(finalDayIntervals.allSatisfy { $0 <= WidgetTimelineSchedule.fineInterval })
+        XCTAssertEqual(WidgetTimelineSchedule.entryDates(now:now,resetAt:nil),[now])
+        XCTAssertEqual(WidgetTimelineSchedule.entryDates(now:now,resetAt:now),[now])
+    }
     @MainActor func testInteractiveOverlayWindowPreservesRequestedTopEdge() {
         let panel=IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
         let requested=NSRect(x:700,y:1052,width:220,height:55)

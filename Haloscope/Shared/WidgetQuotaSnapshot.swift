@@ -53,6 +53,40 @@ struct WidgetQuotaSnapshot: Codable, Equatable, Sendable {
     }
 }
 
+struct WidgetTimelineSchedule: Sendable {
+    static let maximumEntryCount = 256
+    static let fineWindow: TimeInterval = 24 * 60 * 60
+    static let fineInterval: TimeInterval = 15 * 60
+    static let minimumCoarseInterval: TimeInterval = 60 * 60
+
+    static func entryDates(now: Date, resetAt: Date?) -> [Date] {
+        guard let resetAt, resetAt > now else { return [now] }
+
+        let totalDuration = resetAt.timeIntervalSince(now)
+        let fineDuration = min(fineWindow, totalDuration)
+        let coarseDuration = totalDuration - fineDuration
+        let fineStepCount = Int(ceil(fineDuration / fineInterval))
+        let coarseSlotCount = max(1, maximumEntryCount - 1 - fineStepCount)
+        let coarseInterval = max(
+            minimumCoarseInterval,
+            ceil(coarseDuration / Double(coarseSlotCount))
+        )
+        let fineStart = resetAt.addingTimeInterval(-fineDuration)
+
+        var dates = [now]
+        var cursor = now
+        while cursor < fineStart, dates.count < maximumEntryCount {
+            cursor = min(fineStart, cursor.addingTimeInterval(coarseInterval))
+            dates.append(cursor)
+        }
+        while cursor < resetAt, dates.count < maximumEntryCount {
+            cursor = min(resetAt, cursor.addingTimeInterval(fineInterval))
+            dates.append(cursor)
+        }
+        return dates
+    }
+}
+
 enum WidgetQuotaStoreError: LocalizedError {
     case appGroupUnavailable(String)
     case keychain(OSStatus)
@@ -93,36 +127,85 @@ struct WidgetQuotaSnapshotStore: Sendable {
     }
 
     func read() throws -> WidgetQuotaSnapshot? {
-        if explicitDirectoryURL == nil, let data = try readKeychain() {
-            let snapshot = try decoder().decode(WidgetQuotaSnapshot.self, from: data)
-            logger.notice("Loaded widget snapshot from shared keychain; remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
-            return snapshot
+        if explicitDirectoryURL != nil {
+            let fileURL = try snapshotURL()
+            guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+            return try decoder().decode(WidgetQuotaSnapshot.self, from: Data(contentsOf: fileURL))
         }
+
+        var candidates: [(source: String, snapshot: WidgetQuotaSnapshot)] = []
+        var firstError: Error?
+        do {
+            let fileURL = try snapshotURL()
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                do {
+                    let snapshot = try decoder().decode(WidgetQuotaSnapshot.self, from: Data(contentsOf: fileURL))
+                    candidates.append(("shared container", snapshot))
+                } catch {
+                    firstError = error
+                    logger.error("Shared container snapshot read failed: \(String(describing:error), privacy: .public)")
+                }
+            }
+        } catch {
+            firstError = error
+            logger.error("Shared container lookup failed: \(String(describing:error), privacy: .public)")
+        }
+
         if let data = sharedDefaults?.data(forKey: Self.defaultsKey) {
-            let snapshot = try decoder().decode(WidgetQuotaSnapshot.self, from: data)
-            logger.notice("Loaded widget snapshot from shared defaults; remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
-            return snapshot
+            do {
+                candidates.append(("shared defaults", try decoder().decode(WidgetQuotaSnapshot.self, from: data)))
+            } catch {
+                firstError = firstError ?? error
+                logger.error("Shared defaults snapshot decode failed: \(String(describing:error), privacy: .public)")
+            }
         }
-        let fileURL = try snapshotURL()
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            logger.error("Snapshot is missing at \(fileURL.path, privacy: .public)")
-            return nil
+        do {
+            if let data = try readKeychain() {
+                candidates.append(("shared keychain", try decoder().decode(WidgetQuotaSnapshot.self, from: data)))
+            }
+        } catch {
+            firstError = firstError ?? error
         }
-        let snapshot = try decoder().decode(WidgetQuotaSnapshot.self, from: Data(contentsOf: fileURL))
-        logger.notice("Loaded widget snapshot from \(fileURL.path, privacy: .public); remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
-        return snapshot
+
+        if let candidate = candidates.max(by: { $0.snapshot.updatedAt < $1.snapshot.updatedAt }) {
+            logger.notice("Loaded widget snapshot from \(candidate.source, privacy: .public); remaining=\(candidate.snapshot.remainingPercent ?? -1, privacy: .public)")
+            return candidate.snapshot
+        }
+        if let firstError { throw firstError }
+        return nil
     }
 
     func write(_ snapshot: WidgetQuotaSnapshot) throws {
         let data = try encoder().encode(snapshot)
-        if explicitDirectoryURL == nil {
-            try writeKeychain(data)
-            logger.notice("Wrote widget snapshot to shared keychain; remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
+        if explicitDirectoryURL != nil {
+            let fileURL = try snapshotURL(createDirectory: true)
+            try data.write(to: fileURL, options: .atomic)
+            logger.notice("Wrote widget snapshot to \(fileURL.path, privacy: .public); remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
             return
         }
-        let fileURL = try snapshotURL(createDirectory: true)
-        try data.write(to: fileURL, options: .atomic)
-        logger.notice("Wrote widget snapshot to \(fileURL.path, privacy: .public); remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
+
+        var firstError: Error?
+        var didWrite = false
+        do {
+            let fileURL = try snapshotURL(createDirectory: true)
+            try data.write(to: fileURL, options: .atomic)
+            sharedDefaults?.set(data, forKey: Self.defaultsKey)
+            didWrite = true
+            logger.notice("Wrote widget snapshot to shared container; remaining=\(snapshot.remainingPercent ?? -1, privacy: .public)")
+        } catch {
+            firstError = error
+            logger.error("Shared container snapshot write failed")
+        }
+
+        do {
+            try writeKeychain(data)
+            didWrite = true
+            logger.notice("Mirrored widget snapshot to shared keychain")
+        } catch {
+            firstError = firstError ?? error
+            logger.error("Shared keychain snapshot write failed")
+        }
+        if !didWrite, let firstError { throw firstError }
     }
 
     private var sharedDefaults: UserDefaults? {
