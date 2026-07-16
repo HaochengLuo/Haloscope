@@ -18,19 +18,32 @@ struct PanelPresentationPolicy {
     }
 }
 
+struct WidgetTimelineReloadPolicy: Sendable {
+    func shouldReload(
+        snapshot: WidgetQuotaSnapshot,
+        previous: WidgetQuotaSnapshot?,
+        hasRequestedReload: Bool
+    ) -> Bool {
+        !hasRequestedReload || snapshot.materiallyDiffers(from:previous)
+    }
+}
+
 actor WidgetSnapshotCoordinator {
     private let store: WidgetQuotaSnapshotStore
     private let reloadTimelines: @Sendable () -> Void
-    private var hasReloadedWidgetThisSession = false
+    private let reloadPolicy: WidgetTimelineReloadPolicy
+    private var hasRequestedReload = false
 
     init(
         store: WidgetQuotaSnapshotStore = WidgetQuotaSnapshotStore(),
         reloadTimelines: @escaping @Sendable () -> Void = {
             WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
-        }
+        },
+        reloadPolicy: WidgetTimelineReloadPolicy = .init()
     ) {
         self.store = store
         self.reloadTimelines = reloadTimelines
+        self.reloadPolicy = reloadPolicy
     }
 
     func read() -> WidgetQuotaSnapshot? {
@@ -39,11 +52,15 @@ actor WidgetSnapshotCoordinator {
 
     func publish(_ snapshot: WidgetQuotaSnapshot) {
         do {
-            let previous = try store.read()
+            let previous = try? store.read()
             try store.write(snapshot)
-            if !hasReloadedWidgetThisSession || snapshot.materiallyDiffers(from:previous) {
+            if reloadPolicy.shouldReload(
+                snapshot:snapshot,
+                previous:previous,
+                hasRequestedReload:hasRequestedReload
+            ) {
                 reloadTimelines()
-                hasReloadedWidgetThisSession = true
+                hasRequestedReload = true
             }
         } catch {
             // SwiftPM and unsigned development builds do not have an App Group container.
@@ -52,10 +69,10 @@ actor WidgetSnapshotCoordinator {
 
     func publishUnavailableIfNeeded(_ message: String) {
         do {
-            guard try store.read() == nil else { return }
+            guard (try? store.read()) == nil else { return }
             try store.write(.unavailable(message))
             reloadTimelines()
-            hasReloadedWidgetThisSession = true
+            hasRequestedReload = true
         } catch {
             // Keep the host functional when signing/App Group setup is incomplete.
         }

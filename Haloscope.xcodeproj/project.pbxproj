@@ -211,10 +211,20 @@
 					AA5000000000000000000001 = {
 						CreatedOnToolsVersion = 26.0;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.iOS = {
+								enabled = 1;
+							};
+						};
 					};
 					AA5000000000000000000002 = {
 						CreatedOnToolsVersion = 26.0;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.iOS = {
+								enabled = 1;
+							};
+						};
 					};
 					AA5000000000000000000003 = {
 						CreatedOnToolsVersion = 26.0;
@@ -362,11 +372,11 @@
 				CODE_SIGN_ENTITLEMENTS = Packaging/Haloscope.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = Packaging/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -376,6 +386,7 @@
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
 				PRODUCT_NAME = Haloscope;
+				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -386,11 +397,11 @@
 				CODE_SIGN_ENTITLEMENTS = Packaging/Haloscope.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = Packaging/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -400,6 +411,7 @@
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
 				PRODUCT_NAME = Haloscope;
+				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -410,10 +422,10 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = HaloscopeWidget/HaloscopeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = NO;
-				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -424,6 +436,7 @@
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
 				PRODUCT_NAME = HaloscopeWidget;
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -435,10 +448,10 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = HaloscopeWidget/HaloscopeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = NO;
-				HALOSCOPE_APP_GROUP_IDENTIFIER = group.com.lamluo.haloscope;
+				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -449,6 +462,7 @@
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
 				PRODUCT_NAME = HaloscopeWidget;
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
