@@ -115,7 +115,10 @@ struct NotchGeometryService {
         let physical = safeTop > 0 && inferredGap != nil
         let detected = inferredGap ?? CGRect(x:screenFrame.midX-95, y:screenFrame.maxY-32, width:190, height:32)
         let effective = detected.insetBy(dx: -calibration.width/2, dy: -calibration.height/2).offsetBy(dx: calibration.x, dy: calibration.y)
-        let collapsedWidth = physical ? effective.width : 220
+        // The attached shell curves inward by 6pt on each top shoulder.
+        // Add that width back so the vertical body, rather than the outer
+        // bridge, aligns exactly with the detected physical-notch edges.
+        let collapsedWidth = physical ? effective.width+12 : 220
         let collapsedHeight = physical ? max(32,effective.height)+22 : 30
         let collapsed = CGRect(x:screenFrame.midX-collapsedWidth/2, y:screenFrame.maxY-collapsedHeight, width:collapsedWidth, height:collapsedHeight)
         let expanded = CGRect(x:screenFrame.midX-210, y:screenFrame.maxY-440, width:420, height:440)
