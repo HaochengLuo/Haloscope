@@ -108,113 +108,108 @@ private struct NotchRevealModifier: ViewModifier {
         } else {
             content
                 .opacity(visible ? 1 : 0)
-                .blur(radius:visible ? 0 : 7)
-                .scaleEffect(x:visible ? 1 : 0.94,y:visible ? 1 : 0.72,anchor:.top)
+                .blur(radius:visible ? 0 : 12)
+                .scaleEffect(visible ? 1 : 0.96,anchor:.top)
+                .offset(y:visible ? 0:-10)
         }
     }
 }
 
-private struct LiquidGlassPanelSurface: View {
-    let shape: UnevenRoundedRectangle
-    let isExpanded: Bool
+/// The physical-notch variant keeps a full-width bridge on the screen edge,
+/// then curves inward before running down the panel sides. On displays without
+/// a notch the same animatable values resolve to a detached rounded shell.
+struct IslandShellShape: Shape {
+    var topRadius: CGFloat
+    var bottomRadius: CGFloat
+    let isDetached: Bool
 
-    private var reduceTransparency: Bool {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+    var animatableData: AnimatablePair<CGFloat,CGFloat> {
+        get { .init(topRadius,bottomRadius) }
+        set { topRadius=newValue.first; bottomRadius=newValue.second }
     }
+
+    func path(in rect: CGRect) -> Path {
+        let top=min(max(0,topRadius),rect.width/4,rect.height/2)
+        let bottom=min(max(0,bottomRadius),rect.width/2,rect.height/2)
+        if isDetached {
+            return RoundedRectangle(cornerRadius:min(top,bottom),style:.continuous).path(in:rect)
+        }
+
+        let lower=min(bottom,(rect.width-top*2)/2,rect.height-top)
+        var path=Path()
+        path.move(to:CGPoint(x:rect.minX,y:rect.minY))
+        path.addCurve(
+            to:CGPoint(x:rect.minX+top,y:rect.minY+top),
+            control1:CGPoint(x:rect.minX+top*0.56,y:rect.minY),
+            control2:CGPoint(x:rect.minX+top,y:rect.minY+top*0.44)
+        )
+        path.addLine(to:CGPoint(x:rect.minX+top,y:rect.maxY-lower))
+        path.addCurve(
+            to:CGPoint(x:rect.minX+top+lower,y:rect.maxY),
+            control1:CGPoint(x:rect.minX+top,y:rect.maxY-lower*0.42),
+            control2:CGPoint(x:rect.minX+top+lower*0.42,y:rect.maxY)
+        )
+        path.addLine(to:CGPoint(x:rect.maxX-top-lower,y:rect.maxY))
+        path.addCurve(
+            to:CGPoint(x:rect.maxX-top,y:rect.maxY-lower),
+            control1:CGPoint(x:rect.maxX-top-lower*0.42,y:rect.maxY),
+            control2:CGPoint(x:rect.maxX-top,y:rect.maxY-lower*0.42)
+        )
+        path.addLine(to:CGPoint(x:rect.maxX-top,y:rect.minY+top))
+        path.addCurve(
+            to:CGPoint(x:rect.maxX,y:rect.minY),
+            control1:CGPoint(x:rect.maxX-top,y:rect.minY+top*0.44),
+            control2:CGPoint(x:rect.maxX-top*0.56,y:rect.minY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct AtollPanelSurface: View {
+    let shape: IslandShellShape
 
     var body: some View {
-        ZStack {
-            if reduceTransparency {
-                shape.fill(Color(red:0.075,green:0.078,blue:0.082))
-            } else {
-                systemGlass
-
-                shape.fill(
-                    LinearGradient(
-                        stops:[
-                            .init(color:Color.black.opacity(isExpanded ? 0.34:0.27),location:0),
-                            .init(color:Color.black.opacity(isExpanded ? 0.22:0.16),location:0.42),
-                            .init(color:Color.black.opacity(isExpanded ? 0.38:0.29),location:1)
-                        ],
-                        startPoint:.topLeading,
-                        endPoint:.bottomTrailing
-                    )
-                )
-
-                shape.fill(
-                    LinearGradient(
-                        stops:[
-                            .init(color:Color.white.opacity(0.18),location:0),
-                            .init(color:Color.white.opacity(0.045),location:0.16),
-                            .init(color:Color.clear,location:0.42),
-                            .init(color:Color.white.opacity(0.025),location:1)
-                        ],
-                        startPoint:.top,
-                        endPoint:.bottom
-                    )
-                )
-                .blendMode(.screen)
-            }
-        }
-        .overlay {
-            shape.stroke(
-                LinearGradient(
-                    colors:[Color.white.opacity(0.42),Color.white.opacity(0.12),Color.black.opacity(0.24)],
-                    startPoint:.topLeading,
-                    endPoint:.bottomTrailing
-                ),
-                lineWidth:0.8
-            )
-        }
-        .overlay(alignment:.top) {
-            if !reduceTransparency {
-                Capsule()
-                    .fill(LinearGradient(colors:[.clear,Color.white.opacity(0.46),.clear],startPoint:.leading,endPoint:.trailing))
-                    .frame(width:isExpanded ? 210:118,height:1)
-                    .blur(radius:0.25)
-                    .padding(.top,1)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    @ViewBuilder private var systemGlass: some View {
-        if #available(macOS 26.0, *) {
-            Color.clear.glassEffect(.regular,in:shape)
-        } else {
-            shape.fill(.ultraThinMaterial)
-        }
+        shape
+            .fill(Color.black)
+            .allowsHitTesting(false)
     }
 }
 
 struct IslandView: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject private var settings = SettingsStore.shared
-    private let card = Color.white.opacity(0.065)
-    private let border = Color.white.opacity(0.13)
+    private let card = Color.white.opacity(0.06)
+    private let border = Color.white.opacity(0.085)
     private let accent = Color(red:0.30,green:0.78,blue:0.48)
     var body: some View {
-        VStack(spacing:isExpanded ? 14:8) {
-            HStack(spacing:8) {
-                Circle().fill(statusColor).frame(width:8,height:8)
-                Text(statusText).font(.system(size:11,weight:.medium)).lineLimit(1)
-                Spacer()
-                Text(model.activeQuotaWindow.map { "7D  \($0.roundedRemainingPercent)%" } ?? "7D  —").monospacedDigit().font(.system(size:11,weight:.semibold))
+        ZStack(alignment:.top) {
+            VStack(spacing:isExpanded ? 14:8) {
+                HStack(spacing:8) {
+                    Circle().fill(statusColor).frame(width:8,height:8)
+                    Text(statusText).font(.system(size:11,weight:.medium)).lineLimit(1)
+                    Spacer()
+                    Text(model.activeQuotaWindow.map { "7D  \($0.roundedRemainingPercent)%" } ?? "7D  —").monospacedDigit().font(.system(size:11,weight:.semibold))
+                }
+                .padding(.horizontal,8)
+                .frame(width:compactStatusWidth,height:22)
+                .background(isExpanded ? card:Color.clear,in:UnevenRoundedRectangle(cornerRadii:.init(bottomLeading:8,bottomTrailing:8),style:.continuous))
+                if isExpanded {
+                    details.transition(.modifier(active:NotchRevealModifier(visible:false),identity:NotchRevealModifier(visible:true)))
+                }
             }
-            .padding(.horizontal,8)
-            .frame(width:compactStatusWidth,height:22)
-            .background(isExpanded ? card:Color.clear,in:UnevenRoundedRectangle(cornerRadii:.init(bottomLeading:8,bottomTrailing:8),style:.continuous))
-            if model.panelState == .expanded {
-                details.transition(.modifier(active:NotchRevealModifier(visible:false),identity:NotchRevealModifier(visible:true)))
-            }
+            .padding(contentInsets)
+            .frame(width:islandSize.width,height:islandSize.height,alignment:.top)
+            .background { AtollPanelSurface(shape:panelShape) }
+            .clipShape(panelShape)
+            .shadow(color:.black.opacity(isExpanded ? 0.62:0.24),radius:isExpanded ? 14:5,y:isExpanded ? 8:3)
+            .contentShape(panelShape)
+            .offset(y:topOffset)
         }
-        .padding(contentInsets)
         .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
-        .background { LiquidGlassPanelSurface(shape:panelShape,isExpanded:isExpanded) }
-        .clipShape(panelShape)
-        .foregroundStyle(.white).contentShape(Rectangle())
+        .foregroundStyle(.white)
         .environment(\.locale,settings.language.locale)
-        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .linear(duration:0.10) : .spring(response:0.46,dampingFraction:0.72,blendDuration:0.08),value:model.panelState)
+        .animation(islandMotion,value:model.panelState)
         .contextMenu {
             Button(t("context.open_codex"),action:openCodexDesktop)
             Divider()
@@ -226,19 +221,33 @@ struct IslandView: View {
             Button(t("context.quit")) { NSApplication.shared.terminate(nil) }
         }
     }
-    private var isExpanded: Bool { model.panelState == .expanded }
+    private var isExpanded: Bool { model.panelState == .expanded || model.panelState == .settingsPresented }
     private var hasPhysicalNotch: Bool { model.notchGeometry?.hasPhysicalNotch == true }
     private var isPhysicalNotch: Bool { hasPhysicalNotch && !isExpanded }
     private var compactStatusWidth: CGFloat { min(model.notchGeometry?.collapsedPanelFrame.width ?? 190,220) }
     private var notchHeight: CGFloat { model.notchGeometry?.effectiveNotchFrame.height ?? 32 }
+    private var islandSize: CGSize {
+        guard let geometry=model.notchGeometry else { return isExpanded ? .init(width:420,height:440):.init(width:220,height:30) }
+        return isExpanded ? geometry.expandedPanelFrame.size:geometry.collapsedPanelFrame.size
+    }
+    private var topOffset: CGFloat { hasPhysicalNotch ? 0:PanelCanvasLayout.detachedTopGap }
     private var contentInsets: EdgeInsets {
-        if isExpanded { return .init(top:hasPhysicalNotch ? notchHeight:10,leading:18,bottom:16,trailing:18) }
+        if isExpanded { return .init(top:hasPhysicalNotch ? notchHeight:14,leading:36,bottom:20,trailing:36) }
         return .init(top:hasPhysicalNotch ? notchHeight:4,leading:0,bottom:hasPhysicalNotch ? 0:4,trailing:0)
     }
-    private var panelShape: UnevenRoundedRectangle {
-        let top: CGFloat = hasPhysicalNotch ? 0 : (isExpanded ? 28 : 0)
-        let bottom: CGFloat = isExpanded ? 28 : (isPhysicalNotch ? 12 : 14)
-        return UnevenRoundedRectangle(cornerRadii:.init(topLeading:top,bottomLeading:bottom,bottomTrailing:bottom,topTrailing:top),style:.continuous)
+    private var panelShape: IslandShellShape {
+        let radius: CGFloat = isExpanded ? 24:(isPhysicalNotch ? 14:islandSize.height/2)
+        return IslandShellShape(
+            topRadius:isExpanded ? (hasPhysicalNotch ? 19:28):(hasPhysicalNotch ? 6:radius),
+            bottomRadius:radius,
+            isDetached:!hasPhysicalNotch
+        )
+    }
+    private var islandMotion: Animation {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return .linear(duration:0.10) }
+        return isExpanded
+            ? .spring(response:0.42,dampingFraction:0.80,blendDuration:0)
+            : .spring(response:0.45,dampingFraction:1.0,blendDuration:0)
     }
     private var details: some View {
         IslandNativeScrollView {

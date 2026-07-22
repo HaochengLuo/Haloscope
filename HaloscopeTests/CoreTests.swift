@@ -90,7 +90,36 @@ final class CoreTests: XCTestCase {
         let g=s.calculate(screenFrame:frame,visibleFrame:frame,safeTop:32,leftTop:CGRect(x:0,y:950,width:650,height:32),rightTop:CGRect(x:862,y:950,width:650,height:32),identifier:"built-in",calibration:.init(width:10,height:4,x:2,y:1))
         XCTAssertTrue(g.hasPhysicalNotch); XCTAssertEqual(g.detectedNotchFrame.width,212); XCTAssertEqual(g.effectiveNotchFrame.width,222)
         XCTAssertEqual(g.collapsedPanelFrame.midX,frame.midX); XCTAssertEqual(g.expandedPanelFrame.midX,frame.midX)
+        XCTAssertEqual(g.collapsedPanelFrame.width,g.effectiveNotchFrame.width+12)
+        XCTAssertEqual(g.collapsedPanelFrame.width-12,g.effectiveNotchFrame.width)
+        XCTAssertEqual(PanelCanvasLayout.canvasFrame(for:g).maxY,frame.maxY)
+        XCTAssertEqual(PanelCanvasLayout.islandFrame(for:g,state:.collapsedIdle).maxY,frame.maxY)
+        XCTAssertEqual(PanelCanvasLayout.islandFrame(for:g,state:.expanded),g.expandedPanelFrame)
         XCTAssertEqual(g.collapsedPanelFrame.height,g.effectiveNotchFrame.height+22)
+    }
+    func testFixedCanvasContainsBothIslandStates() {
+        let frame=CGRect(x:0,y:0,width:1512,height:982)
+        let geometry=NotchGeometryService().calculate(screenFrame:frame,visibleFrame:frame,safeTop:32,leftTop:CGRect(x:0,y:950,width:650,height:32),rightTop:CGRect(x:862,y:950,width:650,height:32),identifier:"built-in")
+        let canvas=PanelCanvasLayout.canvasFrame(for:geometry)
+        XCTAssertTrue(canvas.contains(PanelCanvasLayout.islandFrame(for:geometry,state:.collapsedIdle)))
+        XCTAssertTrue(canvas.contains(PanelCanvasLayout.islandFrame(for:geometry,state:.expanded)))
+        XCTAssertGreaterThan(canvas.width,geometry.expandedPanelFrame.width)
+        XCTAssertGreaterThan(canvas.height,geometry.expandedPanelFrame.height)
+    }
+    func testDetachedIslandKeepsTopGap() {
+        let frame=CGRect(x:0,y:0,width:1920,height:1080)
+        let geometry=NotchGeometryService().calculate(screenFrame:frame,visibleFrame:frame,safeTop:0,leftTop:nil,rightTop:nil,identifier:"external")
+        let island=PanelCanvasLayout.islandFrame(for:geometry,state:.expanded)
+        XCTAssertEqual(frame.maxY-island.maxY,PanelCanvasLayout.detachedTopGap)
+    }
+    func testIslandShellShapeUsesTransparentShouldersOnlyOnNotchDisplays() {
+        let rect=CGRect(x:0,y:0,width:120,height:80)
+        let attached=IslandShellShape(topRadius:18,bottomRadius:24,isDetached:false).path(in:rect)
+        let detached=IslandShellShape(topRadius:18,bottomRadius:24,isDetached:true).path(in:rect)
+        XCTAssertFalse(attached.contains(CGPoint(x:2,y:30)))
+        XCTAssertTrue(attached.contains(CGPoint(x:22,y:30)))
+        XCTAssertFalse(detached.contains(CGPoint(x:2,y:2)))
+        XCTAssertTrue(detached.contains(CGPoint(x:60,y:2)))
     }
     func testNoNotchFallbackAndScreenSwitch() {
         let s=NotchGeometryService(), f=CGRect(x:0,y:0,width:1920,height:1080)

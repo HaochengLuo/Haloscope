@@ -61,6 +61,40 @@ struct PanelPrimaryClickRoutingPolicy {
     }
 }
 
+struct PanelCanvasLayout {
+    static let horizontalShadowInset: CGFloat = 20
+    static let bottomShadowInset: CGFloat = 28
+    static let detachedTopGap: CGFloat = 10
+
+    static func canvasFrame(for geometry: ScreenGeometry) -> CGRect {
+        let expanded=geometry.expandedPanelFrame
+        let topGap=geometry.hasPhysicalNotch ? 0:detachedTopGap
+        let size=CGSize(
+            width:expanded.width+horizontalShadowInset*2,
+            height:expanded.height+topGap+bottomShadowInset
+        )
+        return CGRect(
+            x:expanded.midX-size.width/2,
+            y:expanded.maxY-size.height,
+            width:size.width,
+            height:size.height
+        )
+    }
+
+    static func islandFrame(for geometry: ScreenGeometry, state: PanelState) -> CGRect {
+        let expanded=state == .expanded || state == .settingsPresented
+        var size=expanded ? geometry.expandedPanelFrame.size:geometry.collapsedPanelFrame.size
+        if state == .collapsedHover { size.width += 16 }
+        let topGap=geometry.hasPhysicalNotch ? 0:detachedTopGap
+        return CGRect(
+            x:geometry.expandedPanelFrame.midX-size.width/2,
+            y:geometry.expandedPanelFrame.maxY-topGap-size.height,
+            width:size.width,
+            height:size.height
+        )
+    }
+}
+
 @MainActor final class NotchPanelController: NSObject {
     let panel: IslandPanel; let model: IslandViewModel
     private var outsideMonitor: Any?
@@ -76,9 +110,9 @@ struct PanelPrimaryClickRoutingPolicy {
     init(model: IslandViewModel) {
         self.model = model
         panel = IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
-        super.init(); panel.isOpaque = false; panel.backgroundColor = .clear; panel.level = .popUpMenu
+        super.init(); panel.isOpaque = false; panel.backgroundColor = .clear; panel.level = .popUpMenu; panel.animationBehavior = .none
         panel.collectionBehavior = [.canJoinAllSpaces,.stationary,.ignoresCycle,.fullScreenAuxiliary]
-        panel.hasShadow = true; panel.isMovable = false
+        panel.hasShadow = false; panel.isMovable = false
         let hosting = PointerTrackingHostingView(rootView:IslandView(model:model))
         panel.contentView = hosting; panel.acceptsMouseMovedEvents = true
         model.onPanelStateChange = { [weak self] in self?.resize() }
@@ -116,47 +150,10 @@ struct PanelPrimaryClickRoutingPolicy {
     func resize(animated: Bool = true) {
         guard let geometry = model.notchGeometry else { return }
         if model.isPinnedExpanded { collapseTask?.cancel(); collapseTask = nil }
-        var frame = model.panelState == .expanded ? geometry.expandedPanelFrame : geometry.collapsedPanelFrame
-        if model.panelState == .collapsedHover { frame = frame.insetBy(dx:-8,dy:0) }
         panel.interactionEnabled = PanelEventRoutingPolicy.isInteractive(model.panelState)
-        if animated {
-            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { animateReducedMotion(to:frame) }
-            else if model.panelState == .expanded { animateExpansion(to:frame) }
-            else { animateCollapse(to:frame) }
-        } else { panel.setFrame(frame,display:true) }
+        let frame=PanelCanvasLayout.canvasFrame(for:geometry)
+        if panel.frame != frame { panel.setFrame(frame,display:true) }
         panel.orderFrontRegardless()
-    }
-    private func animateExpansion(to frame: CGRect) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.42
-            context.timingFunction = CAMediaTimingFunction(controlPoints:0.18,0.88,0.22,1.06)
-            panel.animator().setFrame(frame,display:true)
-        }
-    }
-    private func animateReducedMotion(to frame: CGRect) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.10
-            context.timingFunction = CAMediaTimingFunction(name:.linear)
-            panel.animator().setFrame(frame,display:true)
-        }
-    }
-    private func animateCollapse(to frame: CGRect) {
-        let recoilWidth = max(40,frame.width-10), recoilHeight = max(24,frame.height-4)
-        let recoil = CGRect(x:frame.midX-recoilWidth/2,y:frame.maxY-recoilHeight,width:recoilWidth,height:recoilHeight)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.26
-            context.timingFunction = CAMediaTimingFunction(controlPoints:0.36,0.02,0.20,1)
-            panel.animator().setFrame(recoil,display:true)
-        } completionHandler: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.model.panelState != .expanded else { return }
-                NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.18
-                    context.timingFunction = CAMediaTimingFunction(controlPoints:0.18,0.82,0.22,1.12)
-                    self.panel.animator().setFrame(frame,display:true)
-                }
-            }
-        }
     }
     private func installMouseTracking() {
         panel.ignoresMouseEvents = true
@@ -178,7 +175,8 @@ struct PanelPrimaryClickRoutingPolicy {
         }
     }
     private func updateMouseRouting() {
-        let inside = panel.frame.contains(NSEvent.mouseLocation)
+        guard let geometry=model.notchGeometry else { return }
+        let inside=PanelCanvasLayout.islandFrame(for:geometry,state:model.panelState).contains(NSEvent.mouseLocation)
         if panel.ignoresMouseEvents == inside { panel.ignoresMouseEvents = !inside }
         guard inside != isPointerInside else {
             if inside, PanelEventRoutingPolicy.isInteractive(model.panelState),
@@ -213,8 +211,9 @@ struct PanelPrimaryClickRoutingPolicy {
         }
     }
     private func acquireInteractionFocus() {
-        guard PanelEventRoutingPolicy.isInteractive(model.panelState),
-              panel.frame.contains(NSEvent.mouseLocation) else { return }
+        guard let geometry=model.notchGeometry,
+              PanelEventRoutingPolicy.isInteractive(model.panelState),
+              PanelCanvasLayout.islandFrame(for:geometry,state:model.panelState).contains(NSEvent.mouseLocation) else { return }
         NSApp.activate(ignoringOtherApps:true)
         panel.makeKey()
     }
