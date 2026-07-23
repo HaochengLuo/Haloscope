@@ -25,11 +25,11 @@
 <table>
   <tr>
     <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-zh-cn.png" alt="Haloscope 刘海面板，显示账户额度、可用重置、当前任务与最近对话"></td>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-zh-cn.png" alt="Haloscope 刘海面板，显示最近对话与 Token 统计"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-zh-cn.png" alt="Haloscope 显示设置，包含 Liquid Glass 外观、内容卡片透明度与面板文字颜色"></td>
   </tr>
   <tr>
     <td align="center"><em>账户与任务概览</em></td>
-    <td align="center"><em>对话与 Token 活动</em></td>
+    <td align="center"><em>Liquid Glass 显示设置</em></td>
   </tr>
 </table>
 

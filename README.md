@@ -25,11 +25,11 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 <table>
   <tr>
     <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-en.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-en.png" alt="Haloscope notch panel showing recent conversations and token statistics"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-en.png" alt="Haloscope display settings showing Liquid Glass appearance, content-card opacity, and panel text color"></td>
   </tr>
   <tr>
     <td align="center"><em>Account and task overview</em></td>
-    <td align="center"><em>Conversation and token activity</em></td>
+    <td align="center"><em>Liquid Glass display settings</em></td>
   </tr>
 </table>
 
