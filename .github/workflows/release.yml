@@ -9,7 +9,7 @@ on:
       tag:
         description: Existing version tag to release
         required: true
-        default: v0.2.0-beta.1
+        default: v0.2.0-beta.2
         type: string
 
 permissions:
@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   release:
+    if: ${{ vars.HALOSCOPE_ENABLE_SIGNED_RELEASES == 'true' }}
     name: Build, sign, notarize, and publish
     runs-on: macos-26
     timeout-minutes: 60

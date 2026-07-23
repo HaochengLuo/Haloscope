@@ -16,7 +16,7 @@ MVP 采用 Developer ID 直接分发，不面向 Mac App Store。原因是应用
 
 ## Beta 发行
 
-首个公开测试版使用标签 `v0.2.0-beta.1`。应用内部
+当前仅源码测试版使用标签 `v0.2.0-beta.2`。应用内部
 `CFBundleShortVersionString` 保持 `0.2.0`，GitHub 标签和资产名负责表示
 Beta 通道。
 
@@ -28,15 +28,16 @@ export HALOSCOPE_APP_GROUP_IDENTIFIER="YOUR_REGISTERED_APP_GROUP"
 export HALOSCOPE_NOTARY_KEY_PATH="/absolute/path/to/AuthKey_KEYID.p8"
 export HALOSCOPE_NOTARY_KEY_ID="KEY_ID"
 export HALOSCOPE_NOTARY_ISSUER_ID="ISSUER_ID"
-scripts/release_app.sh --tag v0.2.0-beta.1
+scripts/release_app.sh --tag v0.2.0-beta.2
 ```
 
-也可以先使用 `scripts/release_app.sh --unsigned --tag v0.2.0-beta.1`
+也可以先使用 `scripts/release_app.sh --unsigned --tag v0.2.0-beta.2`
 验证构建与 DMG 布局。无签名资产带有 `-unsigned` 后缀，不能公开发行。
 
 GitHub Actions 的 `release` Environment 应开启 required reviewer，发行标签必须指向
 `main` 中已有的提交。该 Environment 需要以下 Repository Variables：
 
+- `HALOSCOPE_ENABLE_SIGNED_RELEASES=true`
 - `APPLE_TEAM_ID`
 - `HALOSCOPE_APP_GROUP_IDENTIFIER`
 - `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`
@@ -50,5 +51,6 @@ GitHub Actions 的 `release` Environment 应开启 required reviewer，发行标
 - `APPLE_API_KEY_ID`
 - `APPLE_API_KEY_ISSUER_ID`
 
-P12 与 P8 使用 base64 编码后保存。推送已存在的 `v*` 标签会触发签名、
-公证和 GitHub Release；含有连字符的版本会自动标记为 pre-release。
+P12 与 P8 使用 base64 编码后保存。只有
+`HALOSCOPE_ENABLE_SIGNED_RELEASES` 明确设为 `true` 时，推送 `v*` 标签才会运行签名、
+公证和二进制 GitHub Release 工作流；默认关闭时可安全发布仅源码 Release。含有连字符的版本会自动标记为 pre-release。
