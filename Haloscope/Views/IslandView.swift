@@ -166,21 +166,39 @@ struct IslandShellShape: Shape {
     }
 }
 
-private struct AtollPanelSurface: View {
+private struct IslandPanelSurface: View {
     let shape: IslandShellShape
+    let appearance: IslandAppearance
 
     var body: some View {
-        shape
-            .fill(Color.black)
-            .allowsHitTesting(false)
+        ZStack {
+            shape
+                .fill(Color.black)
+                .opacity(appearance == .solidBlack ? 1:0)
+            liquidGlassSurface
+                .opacity(appearance == .liquidGlass ? 1:0)
+        }
+        .allowsHitTesting(false)
+        .animation(nil,value:appearance)
+    }
+
+    @ViewBuilder private var liquidGlassSurface: some View {
+        if #available(macOS 26.0, *) {
+            shape
+                .fill(Color.clear)
+                .glassEffect(.clear,in:shape)
+                .overlay(shape.stroke(Color.white.opacity(0.24),lineWidth:0.7))
+        } else {
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay(shape.stroke(Color.white.opacity(0.20),lineWidth:0.7))
+        }
     }
 }
 
 struct IslandView: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject private var settings = SettingsStore.shared
-    private let card = Color.white.opacity(0.06)
-    private let border = Color.white.opacity(0.085)
     private let accent = Color(red:0.30,green:0.78,blue:0.48)
     var body: some View {
         ZStack(alignment:.top) {
@@ -200,14 +218,15 @@ struct IslandView: View {
             }
             .padding(contentInsets)
             .frame(width:islandSize.width,height:islandSize.height,alignment:.top)
-            .background { AtollPanelSurface(shape:panelShape) }
+            .background { IslandPanelSurface(shape:panelShape,appearance:settings.islandAppearance) }
             .clipShape(panelShape)
-            .shadow(color:.black.opacity(isExpanded ? 0.62:0.24),radius:isExpanded ? 14:5,y:isExpanded ? 8:3)
+            .shadow(color:.black.opacity(panelShadowOpacity),radius:isExpanded ? 14:5,y:isExpanded ? 8:3)
             .contentShape(panelShape)
             .offset(y:topOffset)
         }
         .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
-        .foregroundStyle(.white)
+        .foregroundStyle(primaryTextColor)
+        .environment(\.colorScheme,.dark)
         .environment(\.locale,settings.language.locale)
         .animation(islandMotion,value:model.panelState)
         .contextMenu {
@@ -222,9 +241,21 @@ struct IslandView: View {
         }
     }
     private var isExpanded: Bool { model.panelState == .expanded || model.panelState == .settingsPresented }
+    private var usesLiquidGlass: Bool { settings.islandAppearance == .liquidGlass }
+    private var usesBlackText: Bool { usesLiquidGlass && settings.liquidGlassTextColor == .black }
+    private var primaryTextColor: Color { usesBlackText ? .black:.white }
+    private var secondaryTextColor: Color { primaryTextColor.opacity(0.68) }
+    private var tertiaryTextColor: Color { primaryTextColor.opacity(0.48) }
+    private var quaternaryTextColor: Color { primaryTextColor.opacity(0.32) }
+    private var card: Color { Color.white.opacity(usesLiquidGlass ? settings.liquidGlassCardOpacity:0.06) }
+    private var border: Color { Color.white.opacity(usesLiquidGlass ? 0.22:0.085) }
+    private var panelShadowOpacity: Double {
+        if usesLiquidGlass { return isExpanded ? 0.38:0.16 }
+        return isExpanded ? 0.62:0.24
+    }
     private var hasPhysicalNotch: Bool { model.notchGeometry?.hasPhysicalNotch == true }
     private var isPhysicalNotch: Bool { hasPhysicalNotch && !isExpanded }
-    private var compactStatusWidth: CGFloat { min(model.notchGeometry?.collapsedPanelFrame.width ?? 190,220) }
+    private var compactStatusWidth: CGFloat { PanelCanvasLayout.compactStatusWidth(for:model.notchGeometry) }
     private var notchHeight: CGFloat { model.notchGeometry?.effectiveNotchFrame.height ?? 32 }
     private var islandSize: CGSize {
         guard let geometry=model.notchGeometry else { return isExpanded ? .init(width:420,height:440):.init(width:220,height:30) }
@@ -257,7 +288,7 @@ struct IslandView: View {
                         Text("Haloscope").font(.system(size:17,weight:.semibold))
                         Text(model.planType.map { L10n.format("plan.format",language:settings.language,$0) } ?? t("account.status"))
                             .font(.system(size:11))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(secondaryTextColor)
                     }
                     Spacer()
                     if model.isMockData {
@@ -277,7 +308,7 @@ struct IslandView: View {
                             .fontWeight(.semibold)
                     }
                     .font(.system(size:11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryTextColor)
                 }
 
                 section(t("task.current"),icon:model.hasRecentThreadActivity ? "clock.arrow.circlepath":"moon") {
@@ -295,10 +326,10 @@ struct IslandView: View {
                                 .font(.system(size:13,weight:.medium))
                             Text(model.monitoredThread.map { threadTitle($0,emptyKey:"task.no_recent_thread") } ?? t("task.no_recent_thread"))
                                 .font(.system(size:11))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(secondaryTextColor)
                                 .lineLimit(1)
                             if let cwd=model.monitoredThread?.cwd {
-                                Text(cwd).font(.system(size:9).monospaced()).foregroundStyle(.tertiary).lineLimit(1)
+                                Text(cwd).font(.system(size:9).monospaced()).foregroundStyle(tertiaryTextColor).lineLimit(1)
                             }
                         }
                         Spacer()
@@ -338,13 +369,13 @@ struct IslandView: View {
                             .font(.system(size:10).monospacedDigit())
                     }
                 }
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(tertiaryTextColor)
                 .padding(.horizontal,2)
 
                 if let date=model.lastUpdated {
                     Text(L10n.format("quota.updated",language:settings.language,formattedDate(date,dateStyle:.none,timeStyle:.medium)))
                         .font(.system(size:9))
-                        .foregroundStyle(.quaternary)
+                        .foregroundStyle(quaternaryTextColor)
                 }
                 if let error=model.errorMessage {
                     Text(error).font(.system(size:10)).foregroundStyle(.red).lineLimit(2)
@@ -358,7 +389,7 @@ struct IslandView: View {
 
     private func section<Content:View>(_ title:String,icon:String,@ViewBuilder content:()->Content)->some View {
         VStack(alignment:.leading,spacing:9) {
-            Label(title,systemImage:icon).font(.system(size:11,weight:.semibold)).foregroundStyle(.secondary)
+            Label(title,systemImage:icon).font(.system(size:11,weight:.semibold)).foregroundStyle(secondaryTextColor)
             content()
         }
         .padding(12)
@@ -390,7 +421,7 @@ struct IslandView: View {
                             Text(formattedDate(reset,dateStyle:.medium,timeStyle:.short)).monospacedDigit()
                         }
                         .font(.system(size:9))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(tertiaryTextColor)
                     }
                 }
             } else {
@@ -404,15 +435,15 @@ struct IslandView: View {
             HStack(spacing:9) {
                 Image(systemName:thread.status == .active || thread.status == .waiting ? "circle.fill":"circle")
                     .font(.system(size:7))
-                    .foregroundStyle(thread.status == .active || thread.status == .waiting ? accent:.secondary)
+                    .foregroundStyle(thread.status == .active || thread.status == .waiting ? accent:secondaryTextColor)
                 VStack(alignment:.leading,spacing:2) {
                     Text(threadTitle(thread,emptyKey:"threads.untitled")).font(.system(size:12,weight:.medium)).lineLimit(1)
-                    Text(formattedDate(thread.updatedAt,dateStyle:.none,timeStyle:.short)).font(.system(size:10)).foregroundStyle(.tertiary)
+                    Text(formattedDate(thread.updatedAt,dateStyle:.none,timeStyle:.short)).font(.system(size:10)).foregroundStyle(tertiaryTextColor)
                 }
                 Spacer()
                 Image(systemName:model.selectedThreadID == thread.id && settings.binding == .manual ? "checkmark":"chevron.right")
                     .font(.system(size:9,weight:.semibold))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(quaternaryTextColor)
             }
             .padding(.vertical,2)
         }
@@ -425,13 +456,13 @@ struct IslandView: View {
                 Text(label).font(.system(size:9,weight:.medium))
                 if let subtitle { Text(subtitle).font(.system(size:8)) }
             }
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(tertiaryTextColor)
             Text(compact(value)).font(.system(size:15,weight:.semibold).monospacedDigit())
         }
         .padding(9)
         .frame(maxWidth:.infinity,alignment:.leading)
-        .background(Color.black.opacity(0.11),in:RoundedRectangle(cornerRadius:9,style:.continuous))
-        .overlay(RoundedRectangle(cornerRadius:9,style:.continuous).stroke(Color.white.opacity(0.07),lineWidth:0.5))
+        .background(usesLiquidGlass ? card:Color.black.opacity(0.11),in:RoundedRectangle(cornerRadius:9,style:.continuous))
+        .overlay(RoundedRectangle(cornerRadius:9,style:.continuous).stroke(usesLiquidGlass ? border:Color.white.opacity(0.07),lineWidth:0.5))
     }
 
     private func codexStatistics(_ usage:UsageSummary)->some View {
@@ -451,7 +482,7 @@ struct IslandView: View {
     private func statistic(_ label:String,_ value:String)->some View {
         VStack(spacing:3) {
             Text(value).font(.system(size:13,weight:.semibold).monospacedDigit()).foregroundStyle(accent)
-            Text(label).font(.system(size:8,weight:.medium)).foregroundStyle(.secondary).lineLimit(1)
+            Text(label).font(.system(size:8,weight:.medium)).foregroundStyle(secondaryTextColor).lineLimit(1)
         }
         .frame(maxWidth:.infinity)
     }
@@ -480,7 +511,7 @@ struct IslandView: View {
         default: return thread.preview ?? t(emptyKey)
         }
     }
-    private func empty(_ text:String)->some View { Text(text).font(.system(size:11)).foregroundStyle(.tertiary) }
+    private func empty(_ text:String)->some View { Text(text).font(.system(size:11)).foregroundStyle(tertiaryTextColor) }
     private func pill(_ text:String,color:Color)->some View { Text(text).font(.system(size:9,weight:.bold)).foregroundStyle(color).padding(.horizontal,7).padding(.vertical,4).background(color.opacity(0.12),in:Capsule()) }
     private var connectionColor:Color { model.connection == .connected ? .green : model.connection == .connecting ? .yellow : model.connection == .error ? .red:.gray }
     private var connectionLabel:String { model.connection == .connected ? t("connection.persistent"):model.connection.localizedLabel(language:settings.language) }

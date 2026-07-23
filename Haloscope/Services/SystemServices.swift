@@ -69,6 +69,50 @@ struct Backoff: Sendable {
     func delay(attempt: Int) -> TimeInterval { min(maximum, base * pow(2, Double(max(0, attempt)))) }
 }
 
+enum IslandAppearance: String, CaseIterable, Identifiable, Sendable {
+    static let defaultLiquidGlassCardOpacity = 0.10
+    static let liquidGlassCardOpacityRange = 0.0...0.70
+    static let liquidGlassCardOpacityStep = 0.05
+
+    case solidBlack
+    case liquidGlass
+
+    var id: String { rawValue }
+
+    static func normalizedLiquidGlassCardOpacity(_ value: Double) -> Double {
+        let clamped = min(
+            max(value,liquidGlassCardOpacityRange.lowerBound),
+            liquidGlassCardOpacityRange.upperBound
+        )
+        let stepped = (clamped/liquidGlassCardOpacityStep).rounded()*liquidGlassCardOpacityStep
+        return min(
+            max(stepped,liquidGlassCardOpacityRange.lowerBound),
+            liquidGlassCardOpacityRange.upperBound
+        )
+    }
+
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .solidBlack: L10n.text("appearance.solid_black",language:language)
+        case .liquidGlass: L10n.text("appearance.liquid_glass",language:language)
+        }
+    }
+}
+
+enum LiquidGlassTextColor: String, CaseIterable, Identifiable, Sendable {
+    case white
+    case black
+
+    var id: String { rawValue }
+
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .white: L10n.text("text_color.white",language:language)
+        case .black: L10n.text("text_color.black",language:language)
+        }
+    }
+}
+
 @MainActor final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     @Published var language = AppLanguage.system {
@@ -82,6 +126,9 @@ struct Backoff: Sendable {
     @Published var experimental = false { didSet { defaults.set(experimental, forKey:"experimental") } }
     @Published var clickOutside = true { didSet { defaults.set(clickOutside, forKey:"clickOutside") } }
     @Published var mockMode = false { didSet { defaults.set(mockMode, forKey:"mockMode") } }
+    @Published var islandAppearance = IslandAppearance.solidBlack { didSet { defaults.set(islandAppearance.rawValue,forKey:"islandAppearance") } }
+    @Published var liquidGlassCardOpacity = IslandAppearance.defaultLiquidGlassCardOpacity { didSet { defaults.set(liquidGlassCardOpacity,forKey:"liquidGlassCardOpacity") } }
+    @Published var liquidGlassTextColor = LiquidGlassTextColor.white { didSet { defaults.set(liquidGlassTextColor.rawValue,forKey:"liquidGlassTextColor") } }
     @Published var launchAtLogin = false
     @Published var binding = BindingKind.recent { didSet { defaults.set(binding.rawValue, forKey:"binding") } }
     @Published var selectedThreadID: String? { didSet { defaults.set(selectedThreadID, forKey:"selectedThreadID") } }
@@ -96,6 +143,10 @@ struct Backoff: Sendable {
         experimental = defaults.bool(forKey:"experimental")
         clickOutside = defaults.object(forKey:"clickOutside") as? Bool ?? true
         mockMode = defaults.bool(forKey:"mockMode")
+        islandAppearance = defaults.string(forKey:"islandAppearance").flatMap(IslandAppearance.init(rawValue:)) ?? .solidBlack
+        let savedCardOpacity = defaults.object(forKey:"liquidGlassCardOpacity") as? Double ?? IslandAppearance.defaultLiquidGlassCardOpacity
+        liquidGlassCardOpacity = IslandAppearance.normalizedLiquidGlassCardOpacity(savedCardOpacity)
+        liquidGlassTextColor = defaults.string(forKey:"liquidGlassTextColor").flatMap(LiquidGlassTextColor.init(rawValue:)) ?? .white
         binding = defaults.string(forKey:"binding").flatMap(BindingKind.init(rawValue:)) ?? .recent
         selectedThreadID = defaults.string(forKey:"selectedThreadID")
         SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)

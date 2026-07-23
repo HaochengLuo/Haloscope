@@ -92,6 +92,8 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(g.collapsedPanelFrame.midX,frame.midX); XCTAssertEqual(g.expandedPanelFrame.midX,frame.midX)
         XCTAssertEqual(g.collapsedPanelFrame.width,g.effectiveNotchFrame.width+12)
         XCTAssertEqual(g.collapsedPanelFrame.width-12,g.effectiveNotchFrame.width)
+        XCTAssertEqual(PanelCanvasLayout.compactStatusWidth(for:g),min(g.effectiveNotchFrame.width,220))
+        XCTAssertLessThanOrEqual(PanelCanvasLayout.compactStatusWidth(for:g),g.effectiveNotchFrame.width)
         XCTAssertEqual(PanelCanvasLayout.canvasFrame(for:g).maxY,frame.maxY)
         XCTAssertEqual(PanelCanvasLayout.islandFrame(for:g,state:.collapsedIdle).maxY,frame.maxY)
         XCTAssertEqual(PanelCanvasLayout.islandFrame(for:g,state:.expanded),g.expandedPanelFrame)
@@ -126,6 +128,7 @@ final class CoreTests: XCTestCase {
         let a=s.calculate(screenFrame:f,visibleFrame:f,safeTop:0,leftTop:nil,rightTop:nil,identifier:"a")
         let b=s.calculate(screenFrame:f.offsetBy(dx:1920,dy:0),visibleFrame:f,safeTop:0,leftTop:nil,rightTop:nil,identifier:"b")
         XCTAssertFalse(a.hasPhysicalNotch); XCTAssertNotEqual(a.screenIdentifier,b.screenIdentifier); XCTAssertNotEqual(a.collapsedPanelFrame.minX,b.collapsedPanelFrame.minX)
+        XCTAssertEqual(PanelCanvasLayout.compactStatusWidth(for:a),220)
     }
     @MainActor func testPanelEventRoutingRequiresExpandedStateAndPointerPresence() {
         XCTAssertFalse(PanelEventRoutingPolicy.isInteractive(.collapsedIdle))
@@ -224,10 +227,18 @@ final class CoreTests: XCTestCase {
         let suite="HaloscopeTests-\(UUID())", widgetSuite="HaloscopeWidgetTests-\(UUID())"
         let d=UserDefaults(suiteName:suite)!, widgetDefaults=UserDefaults(suiteName:widgetSuite)!
         defer { d.removePersistentDomain(forName:suite); widgetDefaults.removePersistentDomain(forName:widgetSuite) }
-        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english
+        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english; s.islandAppearance = .liquidGlass; s.liquidGlassCardOpacity = 0.21; s.liquidGlassTextColor = .black
         let restored=SettingsStore(defaults:UserDefaults(suiteName:suite)!,widgetDefaults:widgetDefaults)
-        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english)
+        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english); XCTAssertEqual(restored.islandAppearance,.liquidGlass); XCTAssertEqual(restored.liquidGlassCardOpacity,0.20); XCTAssertEqual(restored.liquidGlassTextColor,.black)
         XCTAssertEqual(SharedLanguagePreference.read(from:widgetDefaults),.english)
+    }
+    func testLiquidGlassCardOpacityUsesFivePercentStepsThroughSeventyPercent() {
+        XCTAssertEqual(IslandAppearance.liquidGlassCardOpacityRange,0.0...0.70)
+        XCTAssertEqual(IslandAppearance.liquidGlassCardOpacityStep,0.05)
+        XCTAssertEqual(IslandAppearance.normalizedLiquidGlassCardOpacity(-0.2),0)
+        XCTAssertEqual(IslandAppearance.normalizedLiquidGlassCardOpacity(0.21),0.20)
+        XCTAssertEqual(IslandAppearance.normalizedLiquidGlassCardOpacity(0.68),0.70)
+        XCTAssertEqual(IslandAppearance.normalizedLiquidGlassCardOpacity(1.2),0.70)
     }
     func testLanguageResolutionAndTranslations() {
         XCTAssertEqual(AppLanguage.system.resolved(preferredLanguages:["zh-Hans-CN"]),.simplifiedChinese)
@@ -238,6 +249,8 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(L10n.format("rate.minutes",language:.english,300),"300-minute quota")
         XCTAssertEqual(L10n.text("settings.tab.codex",language:.english),"Codex")
         XCTAssertEqual(L10n.text("settings.tab.display",language:.english),"Displays")
+        XCTAssertEqual(IslandAppearance.liquidGlass.localizedLabel(language:.simplifiedChinese),"Liquid Glass · 全透明")
+        XCTAssertEqual(LiquidGlassTextColor.black.localizedLabel(language:.simplifiedChinese),"黑色")
     }
     func testWidgetQuotaSnapshotStoreRoundTripAndStaleness() throws {
         let directory=FileManager.default.temporaryDirectory.appendingPathComponent("HaloscopeTests-\(UUID())",isDirectory:true)

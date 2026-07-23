@@ -66,6 +66,14 @@ struct PanelCanvasLayout {
     static let bottomShadowInset: CGFloat = 28
     static let detachedTopGap: CGFloat = 10
 
+    static func compactStatusWidth(for geometry: ScreenGeometry?) -> CGFloat {
+        guard let geometry else { return 190 }
+        let availableWidth = geometry.hasPhysicalNotch
+            ? geometry.effectiveNotchFrame.width
+            : geometry.collapsedPanelFrame.width
+        return min(availableWidth,220)
+    }
+
     static func canvasFrame(for geometry: ScreenGeometry) -> CGRect {
         let expanded=geometry.expandedPanelFrame
         let topGap=geometry.hasPhysicalNotch ? 0:detachedTopGap
