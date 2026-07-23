@@ -53,6 +53,15 @@ HALOSCOPE_DEVELOPMENT_TEAM=YOUR_TEAM_ID scripts/build_app.sh
 
 如使用自己的 App Group，同时传入 `HALOSCOPE_APP_GROUP_IDENTIFIER` 和 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`。构建输出为 `dist/Haloscope.zip`。
 
+可以先验证公开发行包的构建和 DMG 布局：
+
+```bash
+scripts/release_app.sh --unsigned --tag v0.2.0-beta.1
+```
+
+无签名产物会明确带有 `-unsigned` 后缀，不能用于公开分发。Developer ID
+发行条件和 GitHub Actions 配置详见[分发说明](docs/DISTRIBUTION.md)。
+
 协议 Schema 不纳入 Git 历史，需要排查协议变化时运行 `scripts/generate_protocol_schemas.sh` 在本地重新生成。
 
 ## 权限与隐私
@@ -65,7 +74,7 @@ MVP 建议非 Sandbox 的 Developer ID 分发，因为需要启动用户的 Code
 - 2026-07-14 的 Codex CLI 0.144.1 实测仅返回 10080 分钟（7D）主额度；界面不再显示已取消的 5H 额度。
 - `account/usage/read` 是自然日 bucket，“24 小时”只能表述为最近可用日。
 - 本次探针没有活动线程，未取得实时 token/context notification 实例；不显示推测数字。
-- 当前实现已可编译并通过测试；实时 notification 驱动的 token/context、完整子代理实例验证、不同机型视觉 QA、Developer ID 签名和公证仍为部分实现。
+- 当前实现已可编译并通过测试；Developer ID 发行流程已经实现，但真正发布仍需要维护者的签名证书和 Apple 公证凭据。
 
 ## 故障排除
 

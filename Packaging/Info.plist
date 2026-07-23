@@ -5,11 +5,11 @@
     <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
     <key>CFBundleDisplayName</key><string>Haloscope</string>
     <key>CFBundleExecutable</key><string>Haloscope</string>
-    <key>CFBundleIdentifier</key><string>com.lamluo.haloscope</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
     <key>CFBundleName</key><string>Haloscope</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.2.0</string>
+    <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
     <key>HaloscopeAppGroupIdentifier</key><string>$(HALOSCOPE_APP_GROUP_IDENTIFIER)</string>
     <key>HaloscopeKeychainAccessGroup</key><string>$(AppIdentifierPrefix)$(HALOSCOPE_KEYCHAIN_GROUP_SUFFIX)</string>

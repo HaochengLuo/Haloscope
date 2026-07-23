@@ -1,20 +1,51 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  test-and-package:
     runs-on: macos-26
-    timeout-minutes: 15
+    timeout-minutes: 30
+
     steps:
-      - uses: actions/checkout@v7
-      - name: Swift tests
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+
+      - name: Test
         run: swift test --disable-sandbox
-      - name: Unsigned Release package
-        run: UNSIGNED=1 scripts/build_app.sh
+
+      - name: Validate release scripts
+        run: |
+          set -euo pipefail
+          zsh -n scripts/build_app.sh
+          zsh -n scripts/release_app.sh
+          plutil -lint Packaging/ExportOptions.plist
+
+      - name: Build unsigned release preview
+        run: scripts/release_app.sh --unsigned --tag v0.0.0-ci
+
+      - name: Verify preview assets
+        run: |
+          set -euo pipefail
+          test -f dist/Haloscope-0.0.0-ci-macos-universal-unsigned.zip
+          test -f dist/Haloscope-0.0.0-ci-macos-universal-unsigned.dmg
+          test -f dist/Haloscope-0.0.0-ci-SHA256SUMS-unsigned.txt
+          cd dist
+          shasum -a 256 -c Haloscope-0.0.0-ci-SHA256SUMS-unsigned.txt
