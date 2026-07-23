@@ -37,26 +37,77 @@
 
 界面支持跟随系统语言，或在英文与简体中文之间实时切换。桌面小组件显示当前 7D 剩余额度、重置倒计时与可用重置次数；桌面小组件和刘海面板均采用 Liquid Glass 设计。
 
-## 运行
+## 构建与运行
 
-1. 在 Xcode 中打开 `Haloscope.xcodeproj`，为 Haloscope 与 HaloscopeWidget 两个 target 选择同一个 Team，并将 Bundle ID、App Group 和 Keychain Group 改为属于该 Team 的唯一标识，然后运行 Haloscope scheme。
-2. 运行后，在桌面右键“编辑小组件”，搜索 “Haloscope”，添加小号组件。
-3. 应用按自定义路径、`~/.local/bin`、Homebrew、系统路径、login shell 的顺序寻找 `codex`。
+> 当前公开 Beta 仅提供源代码，不包含预编译的 `.app` 或 `.dmg`。
 
-命令行验证可运行 `swift test --disable-sandbox`。尚未配置签名身份时，可用 `UNSIGNED=1 scripts/build_app.sh` 验证完整 app/appex 包装，但未签名的小组件不能注册到系统。
+要求：
 
-签名构建通过环境变量提供本地 Team，不在仓库中保存个人签名信息：
+- 运行 Haloscope 需要 macOS 14 或更高版本
+- 编译当前 Liquid Glass 源码需要 Xcode 26 或更高版本，以及该 Xcode 版本所支持的 macOS
+- 已安装并登录 Codex CLI；请先确认 `codex --version` 能够成功执行
+- 本地签名构建需要在 Xcode 中添加 Apple Account
+
+个人本地编译和运行不要求付费加入 Apple Developer Program。可以使用 Xcode 的[免费 Personal Team](https://developer.apple.com/support/compare-memberships/)，但这种构建不能用于再次分发，并且可能需要定期重新配置签名。
+
+### 从 Xcode 运行
+
+1. 下载[仅源码 Beta](https://github.com/HaochengLuo/Haloscope/releases/tag/v0.2.0-beta.2)，或克隆仓库：
+
+   ```bash
+   git clone https://github.com/HaochengLuo/Haloscope.git
+   cd Haloscope
+   open Haloscope.xcodeproj
+   ```
+
+2. 在 **Xcode → Settings → Accounts** 中添加 Apple Account。
+3. 为 Haloscope 和 HaloscopeWidget 两个 target 启用自动签名，并选择同一个 Team。本地测试可以使用免费的 Personal Team。
+4. 为两个 target 配置属于该 Team 的唯一标识，并保证 App Group 与 Keychain 后缀完全一致：
+
+   - 主应用 Bundle ID：`com.example.haloscope`
+   - Widget Bundle ID：`com.example.haloscope.widget`
+   - `HALOSCOPE_APP_GROUP_IDENTIFIER`：`TEAM_ID.com.example.haloscope`
+   - `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`：`com.example.haloscope.shared`
+
+   Bundle ID 在 **Signing & Capabilities** 中设置；两个 `HALOSCOPE_...` 值需要在两个 target 的 **Build Settings** 中设置。请将 `TEAM_ID` 和 `com.example` 替换成自己的值。App Group 使用 Apple 的 [macOS Team ID 前缀格式](https://developer.apple.com/documentation/xcode/accessing-app-group-containers)；Keychain Access Group 的签名前缀由系统自动添加。
+5. 选择 Haloscope scheme 和 **My Mac**，然后运行。
+6. 在桌面右键“编辑小组件”，搜索 “Haloscope”，添加小号组件。
+
+应用按自定义路径、`~/.local/bin`、Homebrew、系统路径、login shell 的顺序寻找 `codex`。
+
+### 命令行检查与本地打包
+
+运行测试：
 
 ```bash
-HALOSCOPE_DEVELOPMENT_TEAM=YOUR_TEAM_ID scripts/build_app.sh
+swift test --disable-sandbox
 ```
 
-如使用自己的 App Group，同时传入 `HALOSCOPE_APP_GROUP_IDENTIFIER` 和 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`。构建输出为 `dist/Haloscope.zip`。
-
-可以先验证公开发行包的构建和 DMG 布局：
+没有签名身份时，可验证完整 app/appex 打包：
 
 ```bash
-scripts/release_app.sh --unsigned --tag v0.2.0-beta.1
+UNSIGNED=1 scripts/build_app.sh
+```
+
+未签名的小组件不能注册到系统。本地签名构建可通过环境变量提供 Team 和唯一标识，避免将个人签名信息保存进仓库：
+
+```bash
+HALOSCOPE_DEVELOPMENT_TEAM=TEAM_ID \
+HALOSCOPE_APP_BUNDLE_IDENTIFIER=com.example.haloscope \
+HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER=com.example.haloscope.widget \
+HALOSCOPE_APP_GROUP_IDENTIFIER=TEAM_ID.com.example.haloscope \
+HALOSCOPE_KEYCHAIN_GROUP_SUFFIX=com.example.haloscope.shared \
+scripts/build_app.sh
+```
+
+构建结果位于 `dist/Haloscope.zip`。Personal Team 生成的 ZIP 只适合在自己的 Mac 上测试：它没有 Developer ID 签名和公证，不应转发给其他用户；其他用户应使用自己的签名标识从源码编译。
+
+### 维护者发行演练
+
+可以在不签名或公证的情况下验证公开发行包和 DMG 布局：
+
+```bash
+scripts/release_app.sh --unsigned --tag v0.2.0-beta.2
 ```
 
 无签名产物会明确带有 `-unsigned` 后缀，不能用于公开分发。Developer ID

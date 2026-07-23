@@ -8,7 +8,7 @@ MVP 采用 Developer ID 直接分发，不面向 Mac App Store。原因是应用
 - 公证：`notarytool submit --wait`，随后 staple 并用 Gatekeeper 验证。
 - 开发构建：`scripts/build_app.sh` 在系统临时目录完成签名与严格校验，再生成 `dist/Haloscope.zip`，避免 Documents 的 File Provider 元数据污染嵌套 Widget 签名。
 - 发行构建：`scripts/release_app.sh` 使用 Developer ID 归档并导出主应用与 Widget，验证两者的 App Group，分别公证应用 ZIP 与最终 DMG，staple 后生成 GitHub Release 资产和 SHA-256 校验文件。
-- 本地签名：通过 `HALOSCOPE_DEVELOPMENT_TEAM` 环境变量传入 Team ID；分叉项目还应覆盖 `HALOSCOPE_APP_GROUP_IDENTIFIER` 与 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`。
+- 本地签名：通过 `HALOSCOPE_DEVELOPMENT_TEAM` 环境变量传入 Team ID；分叉项目还应覆盖 `HALOSCOPE_APP_BUNDLE_IDENTIFIER`、`HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER`、`HALOSCOPE_APP_GROUP_IDENTIFIER` 与 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`。
 - App Sandbox：MVP 关闭；不借此读取凭证、Cookie 或 Desktop 私有数据库。
 - 登录项：使用 `SMAppService.mainApp`，正确展示 enabled/notRegistered/requiresApproval/notFound。
 - 隐私：仅访问用户指定的 Codex CLI；日志不记录消息正文、文件内容、认证响应和秘密环境变量。
