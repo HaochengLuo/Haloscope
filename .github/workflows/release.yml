@@ -1,0 +1,172 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release
+        required: true
+        default: v0.2.0-beta.1
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, notarize, and publish
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: release
+
+    steps:
+      - name: Resolve tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-$REF_TAG}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify tag
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git rev-parse --verify "refs/tags/$TAG"
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$TAG^{commit}" origin/main; then
+            echo "Release tag must point to a commit contained in main." >&2
+            exit 1
+          fi
+
+      - name: Validate release configuration
+        env:
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          APP_GROUP: ${{ vars.HALOSCOPE_APP_GROUP_IDENTIFIER }}
+          CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_APPLICATION_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_KEY_ISSUER: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          required=(
+            APPLE_TEAM_ID APP_GROUP CERTIFICATE_P12 CERTIFICATE_PASSWORD
+            KEYCHAIN_PASSWORD API_KEY_P8 API_KEY_ID API_KEY_ISSUER
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing release configuration: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Import Developer ID certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_APPLICATION_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/haloscope-signing.keychain-db"
+          certificate="$RUNNER_TEMP/developer-id.p12"
+          echo "$CERTIFICATE_P12" | base64 --decode > "$certificate"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+          security import "$certificate" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$keychain"
+          security list-keychain -d user -s "$keychain" login.keychain-db
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$keychain"
+          rm -f "$certificate"
+          echo "HALOSCOPE_RELEASE_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+          security find-identity -v -p codesigning "$keychain"
+
+      - name: Prepare notarization key
+        env:
+          API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          api_key="$RUNNER_TEMP/AuthKey.p8"
+          umask 077
+          echo "$API_KEY_P8" | base64 --decode > "$api_key"
+          echo "HALOSCOPE_NOTARY_KEY_PATH=$api_key" >> "$GITHUB_ENV"
+
+      - name: Build release assets
+        env:
+          HALOSCOPE_RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          HALOSCOPE_DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
+          HALOSCOPE_APP_GROUP_IDENTIFIER: ${{ vars.HALOSCOPE_APP_GROUP_IDENTIFIER }}
+          HALOSCOPE_KEYCHAIN_GROUP_SUFFIX: ${{ vars.HALOSCOPE_KEYCHAIN_GROUP_SUFFIX }}
+          HALOSCOPE_NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          HALOSCOPE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+        run: scripts/release_app.sh
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          assets=(
+            "dist/Haloscope-${version}-macos-universal.dmg"
+            "dist/Haloscope-${version}-macos-universal.zip"
+            "dist/Haloscope-${version}-SHA256SUMS.txt"
+          )
+          if [[ -f "dist/Haloscope-${version}-macos-universal.dSYM.zip" ]]; then
+            assets+=("dist/Haloscope-${version}-macos-universal.dSYM.zip")
+          fi
+
+          release_flags=(--verify-tag --generate-notes)
+          if [[ "$TAG" == *-* ]]; then
+            release_flags+=(--prerelease)
+          else
+            release_flags+=(--latest)
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$TAG" \
+              "${assets[@]}" \
+              --title "Haloscope ${version}" \
+              "${release_flags[@]}"
+          fi
+
+      - name: Cleanup signing material
+        if: always()
+        run: |
+          if [[ -n "${HALOSCOPE_RELEASE_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$HALOSCOPE_RELEASE_KEYCHAIN" 2>/dev/null || true
+          fi
+          rm -f "${HALOSCOPE_NOTARY_KEY_PATH:-}"

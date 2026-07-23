@@ -72,6 +72,16 @@ HALOSCOPE_DEVELOPMENT_TEAM=YOUR_TEAM_ID scripts/build_app.sh
 
 When using your own App Group, also provide `HALOSCOPE_APP_GROUP_IDENTIFIER` and `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`. The build output is written to `dist/Haloscope.zip`.
 
+To verify the public-release packaging without signing or notarization:
+
+```bash
+scripts/release_app.sh --unsigned --tag v0.2.0-beta.1
+```
+
+Unsigned artifacts are clearly labelled and are not suitable for distribution.
+Developer ID release requirements and GitHub Actions configuration are documented
+in the [distribution notes](docs/DISTRIBUTION.md).
+
 Generated protocol schemas are intentionally excluded from Git history. Run `scripts/generate_protocol_schemas.sh` to recreate them locally when investigating protocol changes.
 
 ## Permissions and privacy
@@ -84,7 +94,7 @@ The current distribution design uses a non-sandboxed Developer ID app because Ha
 - Testing with Codex CLI 0.144.1 on July 14, 2026 returned only the 10,080-minute (7-day) primary allowance. Haloscope no longer displays the discontinued 5-hour allowance.
 - `account/usage/read` returns calendar-day buckets rather than a rolling 24-hour window, so the UI describes the newest value as the latest available day.
 - The captured probe did not include an active thread, so real-time token/context notifications and complete subagent behavior still need additional real-world validation. Haloscope does not display guessed values.
-- Developer ID signing, notarization, broader hardware visual QA, and a complete public binary-release process are not finished yet.
+- The Developer ID release workflow is implemented, but publishing requires the maintainer's signing certificate and Apple notarization credentials.
 
 ## Troubleshooting
 
