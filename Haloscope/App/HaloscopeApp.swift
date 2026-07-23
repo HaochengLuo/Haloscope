@@ -119,6 +119,9 @@ private enum SettingsConnectionStatus {
 }
 
 struct SettingsView: View {
+    private static let displayLabelWidth: CGFloat = 170
+    private static let displayControlWidth: CGFloat = 280
+
     @ObservedObject var settings = SettingsStore.shared
     @State private var codexVersion: String?
     @State private var connectionStatus = SettingsConnectionStatus.notChecked
@@ -167,10 +170,7 @@ struct SettingsView: View {
             }
             .tabItem { Text(t("settings.tab.codex")) }
 
-            Form {
-                Text(t("settings.display.detect"))
-                Text(t("settings.display.fallback"))
-            }
+            displaySettings
             .tabItem { Text(t("settings.tab.display")) }
 
             Form {
@@ -192,6 +192,75 @@ struct SettingsView: View {
 
     private func t(_ key: String) -> String {
         L10n.text(key,language:settings.language)
+    }
+
+    private var displaySettings: some View {
+        VStack(alignment:.leading,spacing:14) {
+            HStack(spacing:16) {
+                Text(t("settings.appearance"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                Picker("",selection:$settings.islandAppearance) {
+                    ForEach(IslandAppearance.allCases) { appearance in
+                        Text(appearance.localizedLabel(language:settings.language)).tag(appearance)
+                    }
+                }
+                .labelsHidden()
+                .frame(width:Self.displayControlWidth)
+            }
+
+            HStack(spacing:16) {
+                Text(t("settings.card_opacity"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                HStack(spacing:8) {
+                    Slider(
+                        value:$settings.liquidGlassCardOpacity,
+                        in:IslandAppearance.liquidGlassCardOpacityRange,
+                        step:IslandAppearance.liquidGlassCardOpacityStep
+                    )
+                    Text("\(Int((settings.liquidGlassCardOpacity*100).rounded()))%")
+                        .monospacedDigit()
+                        .frame(width:36,alignment:.trailing)
+                }
+                .frame(width:Self.displayControlWidth)
+                .disabled(settings.islandAppearance != .liquidGlass)
+                .opacity(settings.islandAppearance == .liquidGlass ? 1:0.45)
+            }
+
+            HStack(spacing:16) {
+                Text(t("settings.text_color"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                Picker("",selection:$settings.liquidGlassTextColor) {
+                    ForEach(LiquidGlassTextColor.allCases) { color in
+                        Text(color.localizedLabel(language:settings.language)).tag(color)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width:Self.displayControlWidth)
+                .disabled(settings.islandAppearance != .liquidGlass)
+                .opacity(settings.islandAppearance == .liquidGlass ? 1:0.45)
+            }
+
+            HStack(alignment:.top,spacing:16) {
+                Color.clear.frame(width:Self.displayLabelWidth,height:1)
+                VStack(alignment:.leading,spacing:7) {
+                    Text(t("settings.liquid_glass_hint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Divider()
+                    Text(t("settings.display.detect"))
+                    Text(t("settings.display.fallback"))
+                }
+                .fixedSize(horizontal:false,vertical:true)
+                .frame(width:Self.displayControlWidth,alignment:.leading)
+            }
+        }
+        .frame(
+            width:Self.displayLabelWidth+16+Self.displayControlWidth,
+            alignment:.leading
+        )
+        .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
+        .padding(.top,28)
     }
 
     private func setLoginItem(_ enabled: Bool) {
@@ -253,7 +322,7 @@ struct SettingsView: View {
 
     private func copyDiagnostics() {
         let path = CodexProcessResolver().resolve(custom:settings.customCodexPath) ?? "unavailable"
-        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)"
+        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)\nIsland appearance: \(settings.islandAppearance.rawValue)\nLiquid Glass card opacity: \(settings.liquidGlassCardOpacity)\nLiquid Glass text color: \(settings.liquidGlassTextColor.rawValue)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value,forType:.string)
     }
@@ -262,6 +331,9 @@ struct SettingsView: View {
         settings.customCodexPath = nil
         settings.experimental = false
         settings.mockMode = false
+        settings.islandAppearance = .solidBlack
+        settings.liquidGlassCardOpacity = IslandAppearance.defaultLiquidGlassCardOpacity
+        settings.liquidGlassTextColor = .white
         settings.clickOutside = true
         settings.binding = .recent
         settings.selectedThreadID = nil
