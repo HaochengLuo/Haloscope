@@ -11,21 +11,21 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 ## Preview
 
 <p align="center">
-  <img src="docs/images/haloscope-widget-en.png" width="280" alt="Haloscope desktop widget showing the remaining seven-day Codex allowance and reset countdown">
+  <img src="docs/images/haloscope-widget-en-v2.png" width="280" alt="Haloscope desktop widget showing the remaining seven-day Codex allowance and reset countdown">
 </p>
 
 <p align="center"><em>Liquid Glass desktop widget</em></p>
 
 <p align="center">
-  <img src="docs/images/haloscope-notch-compact-en.png" width="600" alt="Haloscope compact notch status showing recent activity and remaining seven-day allowance">
+  <img src="docs/images/haloscope-notch-compact-en-v2.png" width="600" alt="Haloscope compact notch status showing recent activity and remaining seven-day allowance">
 </p>
 
 <p align="center"><em>Compact notch status</em></p>
 
 <table>
   <tr>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-en.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-activity-en.png" alt="Haloscope display settings showing Liquid Glass appearance, content-card opacity, and panel text color"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-en-v2.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
+    <td width="50%" valign="top"><img src="docs/images/haloscope-display-settings-en-v2.png" alt="Haloscope display settings showing Liquid Glass appearance, content-card opacity, and panel text color"></td>
   </tr>
   <tr>
     <td align="center"><em>Account and task overview</em></td>
