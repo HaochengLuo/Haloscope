@@ -376,6 +376,7 @@
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_BUNDLE_IDENTIFIER = com.lamluo.haloscope;
 				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = Packaging/Info.plist;
@@ -384,7 +385,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(HALOSCOPE_APP_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = Haloscope;
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -401,6 +402,7 @@
 				DEVELOPMENT_TEAM = "$(HALOSCOPE_DEVELOPMENT_TEAM)";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
+				HALOSCOPE_APP_BUNDLE_IDENTIFIER = com.lamluo.haloscope;
 				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
 				INFOPLIST_FILE = Packaging/Info.plist;
@@ -409,7 +411,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(HALOSCOPE_APP_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = Haloscope;
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -427,6 +429,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER = com.lamluo.haloscope.widget;
 				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -434,7 +437,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = HaloscopeWidget;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -453,6 +456,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				HALOSCOPE_APP_GROUP_IDENTIFIER = "$(DEVELOPMENT_TEAM).com.lamluo.haloscope";
 				HALOSCOPE_KEYCHAIN_GROUP_SUFFIX = com.lamluo.haloscope.shared;
+				HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER = com.lamluo.haloscope.widget;
 				INFOPLIST_FILE = HaloscopeWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -460,7 +464,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.lamluo.haloscope.widget";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = HaloscopeWidget;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;

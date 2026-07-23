@@ -39,18 +39,43 @@ The interface can follow the system language or switch between English and Simpl
 
 ## Build and run
 
+> The current public beta is source-only. It does not include a prebuilt `.app` or `.dmg`.
+
 Requirements:
 
-- macOS 14 or later
-- Xcode 26 or later for building the current Liquid Glass source
-- A working, authenticated Codex CLI installation
+- macOS 14 or later to run Haloscope
+- Xcode 26 or later, on a macOS version supported by that Xcode release, to build the current Liquid Glass source
+- A working, authenticated Codex CLI installation; confirm that `codex --version` succeeds
+- An Apple Account added to Xcode for signed local builds
 
-1. Open `Haloscope.xcodeproj` in Xcode.
-2. Select the same development Team for the Haloscope and HaloscopeWidget targets. Replace the Bundle IDs, App Group, and Keychain Group with unique identifiers owned by that Team.
-3. Run the Haloscope scheme.
-4. Right-click the desktop, choose **Edit Widgets**, search for **Haloscope**, and add the small widget.
+A paid Apple Developer Program membership is not required to build and run Haloscope for personal use. Xcode's [free Personal Team](https://developer.apple.com/support/compare-memberships/) can be used locally, but those builds are not suitable for redistribution and may need periodic reprovisioning.
+
+### Run from Xcode
+
+1. Download the [source-only beta](https://github.com/HaochengLuo/Haloscope/releases/tag/v0.2.0-beta.2), or clone the repository:
+
+   ```bash
+   git clone https://github.com/HaochengLuo/Haloscope.git
+   cd Haloscope
+   open Haloscope.xcodeproj
+   ```
+
+2. In **Xcode → Settings → Accounts**, add your Apple Account.
+3. For both the Haloscope and HaloscopeWidget targets, enable automatic signing and select the same Team. A free Personal Team is sufficient for local testing.
+4. Give both targets identifiers owned by that Team. Use the same App Group and Keychain suffix in both targets:
+
+   - App Bundle ID: `com.example.haloscope`
+   - Widget Bundle ID: `com.example.haloscope.widget`
+   - `HALOSCOPE_APP_GROUP_IDENTIFIER`: `TEAM_ID.com.example.haloscope`
+   - `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`: `com.example.haloscope.shared`
+
+   Set the Bundle IDs in **Signing & Capabilities**, and set the two `HALOSCOPE_...` values under **Build Settings** for both targets. Replace `TEAM_ID` and `com.example` with your own values. The App Group uses Apple's [macOS Team-ID-prefixed form](https://developer.apple.com/documentation/xcode/accessing-app-group-containers); the Keychain access-group prefix is added automatically.
+5. Select the Haloscope scheme and **My Mac**, then run it.
+6. Right-click the desktop, choose **Edit Widgets**, search for **Haloscope**, and add the small widget.
 
 Haloscope looks for `codex` in this order: the custom path selected in Settings, `~/.local/bin`, Homebrew, system paths, and the login shell.
+
+### Command-line checks and local packaging
 
 Run the test suite from the command line:
 
@@ -64,18 +89,25 @@ To verify the complete app and widget-extension packaging without a signing iden
 UNSIGNED=1 scripts/build_app.sh
 ```
 
-An unsigned widget cannot register with macOS. For a signed local build, provide the Team through an environment variable so personal signing information is not stored in the repository:
+An unsigned widget cannot register with macOS. For a signed local build, provide your Team and unique identifiers through environment variables so personal signing information is not stored in the repository:
 
 ```bash
-HALOSCOPE_DEVELOPMENT_TEAM=YOUR_TEAM_ID scripts/build_app.sh
+HALOSCOPE_DEVELOPMENT_TEAM=TEAM_ID \
+HALOSCOPE_APP_BUNDLE_IDENTIFIER=com.example.haloscope \
+HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER=com.example.haloscope.widget \
+HALOSCOPE_APP_GROUP_IDENTIFIER=TEAM_ID.com.example.haloscope \
+HALOSCOPE_KEYCHAIN_GROUP_SUFFIX=com.example.haloscope.shared \
+scripts/build_app.sh
 ```
 
-When using your own App Group, also provide `HALOSCOPE_APP_GROUP_IDENTIFIER` and `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`. The build output is written to `dist/Haloscope.zip`.
+The build output is written to `dist/Haloscope.zip`. A Personal Team ZIP is only for testing on your own Mac: it is not Developer ID signed or notarized and should not be redistributed. Other users should build the source with their own signing identifiers.
+
+### Maintainer release rehearsal
 
 To verify the public-release packaging without signing or notarization:
 
 ```bash
-scripts/release_app.sh --unsigned --tag v0.2.0-beta.1
+scripts/release_app.sh --unsigned --tag v0.2.0-beta.2
 ```
 
 Unsigned artifacts are clearly labelled and are not suitable for distribution.
