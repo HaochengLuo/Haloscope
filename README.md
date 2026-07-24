@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml/badge.svg)](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml)
 
-Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKit `NSPanel`. It combines a notch-attached status panel with a desktop widget and supports macOS 14 or later. All data comes from a separate `codex app-server --stdio` process: Haloscope does not read Codex Desktop's private database, scrape its UI, or estimate token counts.
+Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKit `NSPanel`. It combines a **notch-attached status panel** with a **desktop widget** and supports macOS 14 or later. All data comes from a separate `codex app-server --stdio` process: Haloscope does not read Codex Desktop's private database, scrape its UI, or estimate token counts.
 
 > Haloscope is an unofficial open-source project and is not affiliated with or endorsed by OpenAI. Codex and related trademarks belong to their respective owners.
 
