@@ -4,7 +4,9 @@
 
 [![CI](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml/badge.svg)](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml)
 
-原生 SwiftUI + AppKit `NSPanel` 的 Codex 状态监控器，包含**刘海状态面板**与 macOS **桌面小组件**，部署目标 macOS 14。数据来自独立的 `codex app-server --stdio`，不读取 Codex Desktop 私有数据库，不抓取 UI，不估算 token。
+Haloscope 将 Codex 状态放在 Mac 屏幕顶部，方便随时查看。刘海面板可以显示 7 天剩余额度、重置时间、当前活动、最近对话和 Token 统计；桌面小组件则持续显示最重要的额度信息。
+
+Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex app-server`。它不会读取 Codex Desktop 私有数据库、截取界面或猜测使用量。
 
 > Haloscope 是非官方开源项目，与 OpenAI 不存在隶属或背书关系。Codex 名称及相关商标归其权利人所有。
 
@@ -33,26 +35,35 @@
   </tr>
 </table>
 
-## 当前状态
+## 主要功能
 
-界面支持跟随系统语言，或在英文与简体中文之间实时切换。桌面小组件显示当前 7D 剩余额度、重置倒计时与可用重置次数；桌面小组件和刘海面板均采用 Liquid Glass 设计。
+- 刘海区域显示简洁状态，移入后展开完整活动面板
+- 随时查看 7 天剩余额度、重置时间和可用重置次数
+- 查看当前任务、最近对话和 Token 统计
+- 使用桌面小组件持续显示额度和重置信息
+- 支持 Dynamic Island 与 Liquid Glass 外观，并可调整卡片透明度和文字颜色
+- 支持英文和简体中文，可在应用内随时切换
 
-## 构建与运行
+在 macOS 26 上会使用原生 Liquid Glass；较早的受支持系统会自动使用半透明材质。
 
-> 当前公开 Beta 仅提供源代码，不包含预编译的 `.app` 或 `.dmg`。
+## 从源码安装
 
-要求：
+> 当前 Beta 仅提供源代码，暂时没有可直接下载的 `.app` 或 `.dmg`。
 
-- 运行 Haloscope 需要 macOS 14 或更高版本
-- 编译当前 Liquid Glass 源码需要 Xcode 26 或更高版本，以及该 Xcode 版本所支持的 macOS
-- 已安装并登录 Codex CLI；请先确认 `codex --version` 能够成功执行
-- 本地签名构建需要在 Xcode 中添加 Apple Account
+### 开始之前
 
-个人本地编译和运行不要求付费加入 Apple Developer Program。可以使用 Xcode 的[免费 Personal Team](https://developer.apple.com/support/compare-memberships/)，但这种构建不能用于再次分发，并且可能需要定期重新配置签名。
+你需要准备：
 
-### 从 Xcode 运行
+- 一台运行 macOS 14 或更高版本的 Mac
+- Xcode 26 或更高版本，以及该 Xcode 版本所支持的 macOS
+- 已安装并登录的 Codex CLI
+- 已添加到 Xcode 的 Apple Account
 
-1. 下载[仅源码 Beta](https://github.com/HaochengLuo/Haloscope/releases/tag/v0.2.0-beta.2)，或克隆仓库：
+个人使用不需要付费加入 Apple Developer Program。Xcode 的[免费 Personal Team](https://developer.apple.com/support/compare-memberships/)即可在自己的 Mac 上运行 Haloscope；本地签名到期后，可能需要重新编译一次。
+
+### 安装步骤
+
+1. 下载[最新源码 Beta](https://github.com/HaochengLuo/Haloscope/releases/tag/v0.2.0-beta.2)，或克隆仓库：
 
    ```bash
    git clone https://github.com/HaochengLuo/Haloscope.git
@@ -60,22 +71,29 @@
    open Haloscope.xcodeproj
    ```
 
-2. 在 **Xcode → Settings → Accounts** 中添加 Apple Account。
-3. 为 Haloscope 和 HaloscopeWidget 两个 target 启用自动签名，并选择同一个 Team。本地测试可以使用免费的 Personal Team。
-4. 为两个 target 配置属于该 Team 的唯一标识，并保证 App Group 与 Keychain 后缀完全一致：
+2. 确认 Codex 已准备好：
+
+   ```bash
+   codex --version
+   ```
+
+3. 如果 Xcode 中还没有你的账号，请在 **Xcode → Settings → Accounts** 添加 Apple Account。
+4. 选择 Haloscope 工程，分别打开 **Haloscope** 和 **HaloscopeWidget** target 的 **Signing & Capabilities**，启用自动签名，并为两者选择同一个 Team。
+5. 将示例标识符替换为属于你自己的唯一值：
 
    - 主应用 Bundle ID：`com.example.haloscope`
    - Widget Bundle ID：`com.example.haloscope.widget`
-   - `HALOSCOPE_APP_GROUP_IDENTIFIER`：`TEAM_ID.com.example.haloscope`
-   - `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX`：`com.example.haloscope.shared`
+   - App Group：`TEAM_ID.com.example.haloscope`
+   - Keychain 后缀：`com.example.haloscope.shared`
 
-   Bundle ID 在 **Signing & Capabilities** 中设置；两个 `HALOSCOPE_...` 值需要在两个 target 的 **Build Settings** 中设置。请将 `TEAM_ID` 和 `com.example` 替换成自己的值。App Group 使用 Apple 的 [macOS Team ID 前缀格式](https://developer.apple.com/documentation/xcode/accessing-app-group-containers)；Keychain Access Group 的签名前缀由系统自动添加。
-5. 选择 Haloscope scheme 和 **My Mac**，然后运行。
-6. 在桌面右键“编辑小组件”，搜索 “Haloscope”，添加小号组件。
+   Bundle ID 在 **Signing & Capabilities** 中设置。在两个 target 的 **Build Settings** 中，将 `HALOSCOPE_APP_GROUP_IDENTIFIER` 和 `HALOSCOPE_KEYCHAIN_GROUP_SUFFIX` 设为相同的值。请用自己的 Team ID 和标识符替换 `TEAM_ID` 与 `com.example`。Haloscope 使用 Apple 的 [macOS Team ID 前缀 App Group 格式](https://developer.apple.com/documentation/xcode/accessing-app-group-containers)。
+6. 选择 **Haloscope** scheme 和 **My Mac**，然后点击运行。
+7. 如需添加小组件，请在桌面右键选择“编辑小组件”，搜索“Haloscope”，添加小号组件。
 
-应用按自定义路径、`~/.local/bin`、Homebrew、系统路径、login shell 的顺序寻找 `codex`。
+Haloscope 通常可以从常见安装位置自动找到 Codex。如果没有检测到，请打开 Haloscope 设置并手动选择 `codex` 可执行文件。
 
-### 命令行检查与本地打包
+<details>
+<summary><strong>可选：命令行构建与贡献者工具</strong></summary>
 
 运行测试：
 
@@ -83,13 +101,13 @@
 swift test --disable-sandbox
 ```
 
-没有签名身份时，可验证完整 app/appex 打包：
+在不签名的情况下验证主应用和小组件打包：
 
 ```bash
 UNSIGNED=1 scripts/build_app.sh
 ```
 
-未签名的小组件不能注册到系统。本地签名构建可通过环境变量提供 Team 和唯一标识，避免将个人签名信息保存进仓库：
+未签名的小组件无法添加到 macOS。要创建仅供自己 Mac 测试的签名 ZIP：
 
 ```bash
 HALOSCOPE_DEVELOPMENT_TEAM=TEAM_ID \
@@ -100,41 +118,48 @@ HALOSCOPE_KEYCHAIN_GROUP_SUFFIX=com.example.haloscope.shared \
 scripts/build_app.sh
 ```
 
-构建结果位于 `dist/Haloscope.zip`。Personal Team 生成的 ZIP 只适合在自己的 Mac 上测试：它没有 Developer ID 签名和公证，不应转发给其他用户；其他用户应使用自己的签名标识从源码编译。
+结果会写入 `dist/Haloscope.zip`。Personal Team 构建仅适合在自己的 Mac 上使用；它没有 Developer ID 签名和公证，不应转发给其他用户。
 
-### 维护者发行演练
-
-可以在不签名或公证的情况下验证公开发行包和 DMG 布局：
+维护者可以在不签名或公证的情况下验证发行包布局：
 
 ```bash
 scripts/release_app.sh --unsigned --tag v0.2.0-beta.2
 ```
 
-无签名产物会明确带有 `-unsigned` 后缀，不能用于公开分发。Developer ID
-发行条件和 GitHub Actions 配置详见[分发说明](docs/DISTRIBUTION.md)。
+无签名发行产物不适合公开分发。Developer ID 发行设置请参阅[分发说明](docs/DISTRIBUTION.md)。
 
-协议 Schema 不纳入 Git 历史，需要排查协议变化时运行 `scripts/generate_protocol_schemas.sh` 在本地重新生成。
+协议 Schema 不存放在 Git 中。需要研究协议变化的贡献者可以运行：
 
-## 权限与隐私
+```bash
+scripts/generate_protocol_schemas.sh
+```
 
-MVP 建议非 Sandbox 的 Developer ID 分发，因为需要启动用户的 Codex CLI 并访问其正常状态目录。应用不需要 Accessibility、屏幕录制、浏览器 Cookie 或 ChatGPT 凭证权限。详见 [分发说明](docs/DISTRIBUTION.md)。
+</details>
 
-## 已知限制
+## 隐私
 
-- App Server 没有暴露 Codex Desktop 当前选中线程；界面必须显示手动绑定、自动识别、推断或不可用。
-- 2026-07-14 的 Codex CLI 0.144.1 实测仅返回 10080 分钟（7D）主额度；界面不再显示已取消的 5H 额度。
-- `account/usage/read` 是自然日 bucket，“24 小时”只能表述为最近可用日。
-- 本次探针没有活动线程，未取得实时 token/context notification 实例；不显示推测数字。
-- 当前实现已可编译并通过测试；Developer ID 发行流程已经实现，但真正发布仍需要维护者的签名证书和 Apple 公证凭据。
+Haloscope 通过本机的 `codex app-server` 显示活动和使用情况。它不会读取 Codex Desktop 私有数据库、截取屏幕、收集浏览器 Cookie，也不会要求提供 ChatGPT 凭证。
+
+Haloscope 不需要辅助功能或屏幕录制权限。由于需要启动本机 Codex CLI，当前应用设计不使用 App Sandbox。技术细节请参阅[分发说明](docs/DISTRIBUTION.md)。
+
+## 当前限制
+
+- Codex App Server 不会告知 Haloscope 当前在 Codex Desktop 中选中了哪个线程，因此界面可能将线程标记为手动、已检测、推断或不可用。
+- Haloscope 目前显示 Codex App Server 提供的 7 天额度，不显示已经取消的 5 小时额度。
+- 每日 Token 数据按自然日统计，不是滚动 24 小时数据。
+- 实时 Token、上下文和子代理详情只有在 Codex App Server 提供时才会显示；Haloscope 不会用估算值补全缺失数据。
+- 当前 Beta 仅通过源代码发布，暂时没有经过公证、可直接下载的应用。
 
 ## 故障排除
 
-- “未找到 codex”：在设置中选择可执行文件，并确认 `codex --version` 可运行。
-- App Server 失败：查看脱敏连接错误；不要复制认证响应。
-- Swift/SDK mismatch：安装完整 Xcode并切换 `xcode-select`，确保 `xcrun swift --version` 与 SDK build 匹配。
-- 登录项 requiresApproval：在“系统设置 → 通用 → 登录项”批准。
+- **Haloscope 找不到 Codex：**打开设置并选择 `codex` 可执行文件，同时确认终端中可以运行 `codex --version`。
+- **小组件没有出现或不更新：**确认主应用和小组件使用相同的 Team、App Group 与 Keychain 后缀；未签名构建无法注册小组件。
+- **Codex 连接失败：**查看设置中的连接提示，并确认 Codex CLI 已经登录。
+- **Personal Team 构建无法继续打开：**在 Xcode 中重新编译并运行，以刷新本地签名。
+- **开机启动需要批准：**前往“系统设置 → 通用 → 登录项”启用 Haloscope。
+- **Xcode 提示 Swift 或 SDK 不匹配：**安装完整 Xcode，使用 `xcode-select` 选择它，并确认 `xcrun swift --version` 与当前 SDK 一致。
 
-协议证据见 [能力矩阵](docs/CAPABILITY_MATRIX.md) 与 [协议记录](docs/CODEX_PROTOCOL_NOTES.md)。
+面向贡献者的协议细节请参阅[能力矩阵](docs/CAPABILITY_MATRIX.md)与[协议记录](docs/CODEX_PROTOCOL_NOTES.md)。
 
 ## License
 
