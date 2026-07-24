@@ -92,55 +92,11 @@ Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex a
 
 Haloscope 通常可以从常见安装位置自动找到 Codex。如果没有检测到，请打开 Haloscope 设置并手动选择 `codex` 可执行文件。
 
-<details>
-<summary><strong>可选：命令行构建与贡献者工具</strong></summary>
-
-运行测试：
-
-```bash
-swift test --disable-sandbox
-```
-
-在不签名的情况下验证主应用和小组件打包：
-
-```bash
-UNSIGNED=1 scripts/build_app.sh
-```
-
-未签名的小组件无法添加到 macOS。要创建仅供自己 Mac 测试的签名 ZIP：
-
-```bash
-HALOSCOPE_DEVELOPMENT_TEAM=TEAM_ID \
-HALOSCOPE_APP_BUNDLE_IDENTIFIER=com.example.haloscope \
-HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER=com.example.haloscope.widget \
-HALOSCOPE_APP_GROUP_IDENTIFIER=TEAM_ID.com.example.haloscope \
-HALOSCOPE_KEYCHAIN_GROUP_SUFFIX=com.example.haloscope.shared \
-scripts/build_app.sh
-```
-
-结果会写入 `dist/Haloscope.zip`。Personal Team 构建仅适合在自己的 Mac 上使用；它没有 Developer ID 签名和公证，不应转发给其他用户。
-
-维护者可以在不签名或公证的情况下验证发行包布局：
-
-```bash
-scripts/release_app.sh --unsigned --tag v0.2.0-beta.2
-```
-
-无签名发行产物不适合公开分发。Developer ID 发行设置请参阅[分发说明](docs/DISTRIBUTION.md)。
-
-协议 Schema 不存放在 Git 中。需要研究协议变化的贡献者可以运行：
-
-```bash
-scripts/generate_protocol_schemas.sh
-```
-
-</details>
-
 ## 隐私
 
 Haloscope 通过本机的 `codex app-server` 显示活动和使用情况。它不会读取 Codex Desktop 私有数据库、截取屏幕、收集浏览器 Cookie，也不会要求提供 ChatGPT 凭证。
 
-Haloscope 不需要辅助功能或屏幕录制权限。由于需要启动本机 Codex CLI，当前应用设计不使用 App Sandbox。技术细节请参阅[分发说明](docs/DISTRIBUTION.md)。
+Haloscope 不需要辅助功能或屏幕录制权限。由于需要启动本机 Codex CLI，当前应用设计不使用 App Sandbox。
 
 ## 当前限制
 

@@ -92,55 +92,11 @@ You do not need a paid Apple Developer Program membership for personal use. Xcod
 
 Haloscope normally finds Codex automatically in common installation locations. If it does not, open Haloscope Settings and choose the `codex` executable manually.
 
-<details>
-<summary><strong>Optional: command-line builds and contributor tools</strong></summary>
-
-Run the test suite:
-
-```bash
-swift test --disable-sandbox
-```
-
-Verify app and widget packaging without signing:
-
-```bash
-UNSIGNED=1 scripts/build_app.sh
-```
-
-An unsigned widget cannot be added to macOS. To create a signed ZIP for testing on your own Mac:
-
-```bash
-HALOSCOPE_DEVELOPMENT_TEAM=TEAM_ID \
-HALOSCOPE_APP_BUNDLE_IDENTIFIER=com.example.haloscope \
-HALOSCOPE_WIDGET_BUNDLE_IDENTIFIER=com.example.haloscope.widget \
-HALOSCOPE_APP_GROUP_IDENTIFIER=TEAM_ID.com.example.haloscope \
-HALOSCOPE_KEYCHAIN_GROUP_SUFFIX=com.example.haloscope.shared \
-scripts/build_app.sh
-```
-
-The result is written to `dist/Haloscope.zip`. A Personal Team build is intended only for your own Mac; it is not Developer ID signed or notarized and should not be redistributed.
-
-Maintainers can verify the release layout without signing or notarization:
-
-```bash
-scripts/release_app.sh --unsigned --tag v0.2.0-beta.2
-```
-
-Unsigned release artifacts are not suitable for distribution. See the [distribution notes](docs/DISTRIBUTION.md) for the Developer ID release setup.
-
-Protocol schemas are not stored in Git. Contributors investigating protocol changes can recreate them with:
-
-```bash
-scripts/generate_protocol_schemas.sh
-```
-
-</details>
-
 ## Privacy
 
 Haloscope communicates with a local `codex app-server` process to show your activity and usage. It does not read Codex Desktop's private database, capture the screen, collect browser cookies, or ask for ChatGPT credentials.
 
-Haloscope does not require Accessibility or screen-recording permission. Because it needs to launch your local Codex CLI, the current app design runs outside the App Sandbox. See the [distribution notes](docs/DISTRIBUTION.md) for technical details.
+Haloscope does not require Accessibility or screen-recording permission. Because it needs to launch your local Codex CLI, the current app design runs outside the App Sandbox.
 
 ## Current limitations
 
