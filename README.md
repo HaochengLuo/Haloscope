@@ -35,7 +35,7 @@ Haloscope is a native macOS Codex status monitor built with SwiftUI and an AppKi
 
 ## Current status
 
-The interface can follow the system language or switch between English and Simplified Chinese at runtime. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. The widget use a Liquid Glass design, the notch panel allows switching between black and Liquid Glass appearance, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
+The interface can follow the system language or switch between English and Simplified Chinese at runtime. The desktop widget shows the remaining 7-day allowance, reset countdown, and available reset credits. The widget uses a Liquid Glass design, while the notch panel allows switching between black and Liquid Glass appearances, with the native glass effect on macOS 26 and a material fallback on earlier supported versions.
 
 ## Build and run
 
