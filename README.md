@@ -40,8 +40,8 @@ Haloscope supports macOS 14 or later and gets its data directly from the local `
 - A compact notch status that expands into a full activity panel
 - Your remaining 7-day allowance, reset time, and available resets at a glance
 - Current task, recent conversations, and token statistics
-- A desktop widget for quota and reset information
-- Dynamic Island and Liquid Glass appearance options, including card opacity and panel text color
+- A desktop widget with a Liquid Glass design for quota and reset information
+- A notch panel that can switch between black and Liquid Glass appearances, including adjustable card opacity and panel text color
 - English and Simplified Chinese, with in-app language switching
 
 Liquid Glass uses the native effect on macOS 26 and a translucent material fallback on earlier supported versions.
