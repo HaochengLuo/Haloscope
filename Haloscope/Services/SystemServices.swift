@@ -113,6 +113,46 @@ enum LiquidGlassTextColor: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum CollapsedStatusPlacement: String, CaseIterable, Identifiable, Sendable {
+    case belowNotch
+    case besideNotch
+    case hidden
+
+    var id: String { rawValue }
+
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .belowNotch: L10n.text("collapsed_status.below_notch",language:language)
+        case .besideNotch: L10n.text("collapsed_status.beside_notch",language:language)
+        case .hidden: L10n.text("collapsed_status.hidden",language:language)
+        }
+    }
+}
+
+enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
+    case followSystem
+    case reducedMotion
+    case fullMotion
+
+    var id: String { rawValue }
+
+    func shouldReduceMotion(systemSetting: Bool) -> Bool {
+        switch self {
+        case .followSystem: systemSetting
+        case .reducedMotion: true
+        case .fullMotion: false
+        }
+    }
+
+    func localizedLabel(language: AppLanguage) -> String {
+        switch self {
+        case .followSystem: L10n.text("motion.follow_system",language:language)
+        case .reducedMotion: L10n.text("motion.reduced",language:language)
+        case .fullMotion: L10n.text("motion.full",language:language)
+        }
+    }
+}
+
 @MainActor final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     @Published var language = AppLanguage.system {
@@ -129,6 +169,8 @@ enum LiquidGlassTextColor: String, CaseIterable, Identifiable, Sendable {
     @Published var islandAppearance = IslandAppearance.solidBlack { didSet { defaults.set(islandAppearance.rawValue,forKey:"islandAppearance") } }
     @Published var liquidGlassCardOpacity = IslandAppearance.defaultLiquidGlassCardOpacity { didSet { defaults.set(liquidGlassCardOpacity,forKey:"liquidGlassCardOpacity") } }
     @Published var liquidGlassTextColor = LiquidGlassTextColor.white { didSet { defaults.set(liquidGlassTextColor.rawValue,forKey:"liquidGlassTextColor") } }
+    @Published var collapsedStatusPlacement = CollapsedStatusPlacement.belowNotch { didSet { defaults.set(collapsedStatusPlacement.rawValue,forKey:"collapsedStatusPlacement") } }
+    @Published var motionEffectPreference = MotionEffectPreference.followSystem { didSet { defaults.set(motionEffectPreference.rawValue,forKey:"motionEffectPreference") } }
     @Published var launchAtLogin = false
     @Published var binding = BindingKind.recent { didSet { defaults.set(binding.rawValue, forKey:"binding") } }
     @Published var selectedThreadID: String? { didSet { defaults.set(selectedThreadID, forKey:"selectedThreadID") } }
@@ -147,6 +189,8 @@ enum LiquidGlassTextColor: String, CaseIterable, Identifiable, Sendable {
         let savedCardOpacity = defaults.object(forKey:"liquidGlassCardOpacity") as? Double ?? IslandAppearance.defaultLiquidGlassCardOpacity
         liquidGlassCardOpacity = IslandAppearance.normalizedLiquidGlassCardOpacity(savedCardOpacity)
         liquidGlassTextColor = defaults.string(forKey:"liquidGlassTextColor").flatMap(LiquidGlassTextColor.init(rawValue:)) ?? .white
+        collapsedStatusPlacement = defaults.string(forKey:"collapsedStatusPlacement").flatMap(CollapsedStatusPlacement.init(rawValue:)) ?? .belowNotch
+        motionEffectPreference = defaults.string(forKey:"motionEffectPreference").flatMap(MotionEffectPreference.init(rawValue:)) ?? .followSystem
         binding = defaults.string(forKey:"binding").flatMap(BindingKind.init(rawValue:)) ?? .recent
         selectedThreadID = defaults.string(forKey:"selectedThreadID")
         SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)

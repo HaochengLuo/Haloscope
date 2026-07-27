@@ -19,25 +19,22 @@ Haloscope supports macOS 14 or later and gets its data directly from the local `
 <p align="center"><em>Liquid Glass desktop widget</em></p>
 
 <p align="center">
-  <img src="docs/images/haloscope-notch-compact-en-v2.png" width="600" alt="Haloscope compact notch status showing recent activity and remaining seven-day allowance">
+  <img src="docs/images/haloscope-panel-overview-en-v3.png" width="900" alt="Haloscope expanded notch panel showing account quota, reset credits, current task, and recent conversations">
 </p>
 
-<p align="center"><em>Compact notch status</em></p>
+<p align="center"><em>Account and task overview</em></p>
 
-<table>
-  <tr>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-en-v2.png" alt="Haloscope notch panel showing account allowance, reset credits, current task, and recent conversations"></td>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-display-settings-en-v2.png" alt="Haloscope display settings showing Liquid Glass appearance, content-card opacity, and panel text color"></td>
-  </tr>
-  <tr>
-    <td align="center"><em>Account and task overview</em></td>
-    <td align="center"><em>Liquid Glass display settings</em></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/images/haloscope-display-settings-en-v3.png" width="900" alt="Haloscope display settings showing collapsed-status placement, motion effects, island appearance, card opacity, and panel text color">
+</p>
+
+<p align="center"><em>Notch and display settings</em></p>
 
 ## Features
 
 - A compact notch status that expands into a full activity panel
+- Three collapsed-status options: below the notch, beside the notch, or hidden
+- Motion effects that can follow macOS, always reduce motion, or always use full motion
 - Your remaining 7-day allowance, reset time, and available resets at a glance
 - Current task, recent conversations, and token statistics
 - A desktop widget with a Liquid Glass design for quota and reset information

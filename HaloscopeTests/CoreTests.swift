@@ -108,6 +108,28 @@ final class CoreTests: XCTestCase {
         XCTAssertGreaterThan(canvas.width,geometry.expandedPanelFrame.width)
         XCTAssertGreaterThan(canvas.height,geometry.expandedPanelFrame.height)
     }
+    func testCollapsedStatusPlacementsKeepTheNotchCenteredAndInteractive() {
+        let frame=CGRect(x:0,y:0,width:1512,height:982)
+        let geometry=NotchGeometryService().calculate(screenFrame:frame,visibleFrame:frame,safeTop:32,leftTop:CGRect(x:0,y:950,width:650,height:32),rightTop:CGRect(x:862,y:950,width:650,height:32),identifier:"built-in")
+        let below=PanelCanvasLayout.islandFrame(for:geometry,state:.collapsedIdle,placement:.belowNotch)
+        let beside=PanelCanvasLayout.islandFrame(for:geometry,state:.collapsedIdle,placement:.besideNotch)
+        let hidden=PanelCanvasLayout.islandFrame(for:geometry,state:.collapsedIdle,placement:.hidden)
+        XCTAssertEqual(below,geometry.collapsedPanelFrame)
+        XCTAssertEqual(beside.midX,geometry.effectiveNotchFrame.midX)
+        XCTAssertEqual(beside.maxY,frame.maxY)
+        XCTAssertEqual(
+            beside.height,
+            max(32,geometry.effectiveNotchFrame.height)+PanelCanvasLayout.besideStatusVerticalBleed
+        )
+        XCTAssertEqual(
+            beside.width,
+            geometry.effectiveNotchFrame.width
+                + PanelCanvasLayout.besideStatusLeadingWidth
+                + PanelCanvasLayout.besideStatusTrailingWidth
+        )
+        XCTAssertEqual(hidden,below)
+        XCTAssertTrue(PanelCanvasLayout.canvasFrame(for:geometry).contains(beside))
+    }
     func testDetachedIslandKeepsTopGap() {
         let frame=CGRect(x:0,y:0,width:1920,height:1080)
         let geometry=NotchGeometryService().calculate(screenFrame:frame,visibleFrame:frame,safeTop:0,leftTop:nil,rightTop:nil,identifier:"external")
@@ -227,10 +249,32 @@ final class CoreTests: XCTestCase {
         let suite="HaloscopeTests-\(UUID())", widgetSuite="HaloscopeWidgetTests-\(UUID())"
         let d=UserDefaults(suiteName:suite)!, widgetDefaults=UserDefaults(suiteName:widgetSuite)!
         defer { d.removePersistentDomain(forName:suite); widgetDefaults.removePersistentDomain(forName:widgetSuite) }
-        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english; s.islandAppearance = .liquidGlass; s.liquidGlassCardOpacity = 0.21; s.liquidGlassTextColor = .black
+        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english; s.islandAppearance = .liquidGlass; s.liquidGlassCardOpacity = 0.21; s.liquidGlassTextColor = .black; s.collapsedStatusPlacement = .besideNotch; s.motionEffectPreference = .fullMotion
         let restored=SettingsStore(defaults:UserDefaults(suiteName:suite)!,widgetDefaults:widgetDefaults)
-        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english); XCTAssertEqual(restored.islandAppearance,.liquidGlass); XCTAssertEqual(restored.liquidGlassCardOpacity,0.20); XCTAssertEqual(restored.liquidGlassTextColor,.black)
+        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english); XCTAssertEqual(restored.islandAppearance,.liquidGlass); XCTAssertEqual(restored.liquidGlassCardOpacity,0.20); XCTAssertEqual(restored.liquidGlassTextColor,.black); XCTAssertEqual(restored.collapsedStatusPlacement,.besideNotch); XCTAssertEqual(restored.motionEffectPreference,.fullMotion)
         XCTAssertEqual(SharedLanguagePreference.read(from:widgetDefaults),.english)
+    }
+    @MainActor func testCollapsedStatusPlacementDefaultsAndUnknownValues() {
+        let suite="HaloscopeCollapsedStatusTests-\(UUID())"
+        let defaults=UserDefaults(suiteName:suite)!
+        defer { defaults.removePersistentDomain(forName:suite) }
+        XCTAssertEqual(SettingsStore(defaults:defaults,widgetDefaults:nil).collapsedStatusPlacement,.belowNotch)
+        defaults.set("future-placement",forKey:"collapsedStatusPlacement")
+        XCTAssertEqual(SettingsStore(defaults:defaults,widgetDefaults:nil).collapsedStatusPlacement,.belowNotch)
+    }
+    func testMotionEffectPreferenceOverridesSystemSetting() {
+        XCTAssertTrue(MotionEffectPreference.followSystem.shouldReduceMotion(systemSetting:true))
+        XCTAssertFalse(MotionEffectPreference.followSystem.shouldReduceMotion(systemSetting:false))
+        XCTAssertTrue(MotionEffectPreference.reducedMotion.shouldReduceMotion(systemSetting:false))
+        XCTAssertFalse(MotionEffectPreference.fullMotion.shouldReduceMotion(systemSetting:true))
+    }
+    @MainActor func testMotionEffectPreferenceDefaultsAndUnknownValues() {
+        let suite="HaloscopeMotionEffectTests-\(UUID())"
+        let defaults=UserDefaults(suiteName:suite)!
+        defer { defaults.removePersistentDomain(forName:suite) }
+        XCTAssertEqual(SettingsStore(defaults:defaults,widgetDefaults:nil).motionEffectPreference,.followSystem)
+        defaults.set("future-motion-style",forKey:"motionEffectPreference")
+        XCTAssertEqual(SettingsStore(defaults:defaults,widgetDefaults:nil).motionEffectPreference,.followSystem)
     }
     func testLiquidGlassCardOpacityUsesFivePercentStepsThroughSeventyPercent() {
         XCTAssertEqual(IslandAppearance.liquidGlassCardOpacityRange,0.0...0.70)
@@ -249,6 +293,14 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(L10n.format("rate.minutes",language:.english,300),"300-minute quota")
         XCTAssertEqual(L10n.text("settings.tab.codex",language:.english),"Codex")
         XCTAssertEqual(L10n.text("settings.tab.display",language:.english),"Displays")
+        XCTAssertEqual(L10n.text("settings.collapsed_status",language:.simplifiedChinese),"收起状态显示")
+        XCTAssertEqual(CollapsedStatusPlacement.belowNotch.localizedLabel(language:.english),"Below Notch")
+        XCTAssertEqual(CollapsedStatusPlacement.besideNotch.localizedLabel(language:.simplifiedChinese),"刘海两侧")
+        XCTAssertEqual(CollapsedStatusPlacement.hidden.localizedLabel(language:.english),"Hidden")
+        XCTAssertEqual(L10n.text("settings.motion_effects",language:.simplifiedChinese),"动态效果")
+        XCTAssertEqual(MotionEffectPreference.followSystem.localizedLabel(language:.english),"Follow System")
+        XCTAssertEqual(MotionEffectPreference.reducedMotion.localizedLabel(language:.simplifiedChinese),"减少动态效果")
+        XCTAssertEqual(MotionEffectPreference.fullMotion.localizedLabel(language:.english),"Full Motion")
         XCTAssertEqual(IslandAppearance.liquidGlass.localizedLabel(language:.simplifiedChinese),"Liquid Glass · 全透明")
         XCTAssertEqual(LiquidGlassTextColor.black.localizedLabel(language:.simplifiedChinese),"黑色")
     }

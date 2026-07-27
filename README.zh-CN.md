@@ -19,25 +19,22 @@ Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex a
 <p align="center"><em>Liquid Glass 桌面小组件</em></p>
 
 <p align="center">
-  <img src="docs/images/haloscope-notch-compact-zh-cn-v2.png" width="600" alt="Haloscope 紧凑刘海状态，显示最近活动与七天剩余额度">
+  <img src="docs/images/haloscope-panel-overview-zh-cn-v3.png" width="900" alt="Haloscope 展开的刘海面板，显示账户额度、可用重置、当前任务与最近对话">
 </p>
 
-<p align="center"><em>紧凑刘海状态</em></p>
+<p align="center"><em>账户与任务概览</em></p>
 
-<table>
-  <tr>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-panel-overview-zh-cn-v2.png" alt="Haloscope 刘海面板，显示账户额度、可用重置、当前任务与最近对话"></td>
-    <td width="50%" valign="top"><img src="docs/images/haloscope-display-settings-zh-cn-v2.png" alt="Haloscope 显示设置，包含 Liquid Glass 外观、内容卡片透明度与面板文字颜色"></td>
-  </tr>
-  <tr>
-    <td align="center"><em>账户与任务概览</em></td>
-    <td align="center"><em>Liquid Glass 显示设置</em></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/images/haloscope-display-settings-zh-cn-v3.png" width="900" alt="Haloscope 显示设置，包含收起状态位置、动态效果、灵动岛外观、卡片透明度与面板文字颜色">
+</p>
+
+<p align="center"><em>刘海与显示设置</em></p>
 
 ## 主要功能
 
 - 刘海区域显示简洁状态，移入后展开完整活动面板
+- 收起状态可放在刘海下沿、刘海两侧，或完全隐藏
+- 动态效果可跟随 macOS，也可始终减少或始终使用完整动画
 - 随时查看 7 天剩余额度、重置时间和可用重置次数
 - 查看当前任务、最近对话和 Token 统计
 - 采用 Liquid Glass 设计的桌面小组件，持续显示额度和重置信息
