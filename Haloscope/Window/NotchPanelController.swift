@@ -65,6 +65,9 @@ struct PanelCanvasLayout {
     static let horizontalShadowInset: CGFloat = 20
     static let bottomShadowInset: CGFloat = 28
     static let detachedTopGap: CGFloat = 10
+    static let besideStatusLeadingWidth: CGFloat = 40
+    static let besideStatusTrailingWidth: CGFloat = 58
+    static let besideStatusVerticalBleed: CGFloat = 1
 
     static func compactStatusWidth(for geometry: ScreenGeometry?) -> CGFloat {
         guard let geometry else { return 190 }
@@ -89,9 +92,28 @@ struct PanelCanvasLayout {
         )
     }
 
-    static func islandFrame(for geometry: ScreenGeometry, state: PanelState) -> CGRect {
+    static func collapsedSize(
+        for geometry: ScreenGeometry,
+        placement: CollapsedStatusPlacement
+    ) -> CGSize {
+        guard geometry.hasPhysicalNotch, placement == .besideNotch else {
+            return geometry.collapsedPanelFrame.size
+        }
+        return CGSize(
+            width:geometry.effectiveNotchFrame.width+besideStatusLeadingWidth+besideStatusTrailingWidth,
+            height:max(32,geometry.effectiveNotchFrame.height)+besideStatusVerticalBleed
+        )
+    }
+
+    static func islandFrame(
+        for geometry: ScreenGeometry,
+        state: PanelState,
+        placement: CollapsedStatusPlacement = .belowNotch
+    ) -> CGRect {
         let expanded=state == .expanded || state == .settingsPresented
-        var size=expanded ? geometry.expandedPanelFrame.size:geometry.collapsedPanelFrame.size
+        var size=expanded
+            ? geometry.expandedPanelFrame.size
+            : collapsedSize(for:geometry,placement:placement)
         if state == .collapsedHover { size.width += 16 }
         let topGap=geometry.hasPhysicalNotch ? 0:detachedTopGap
         return CGRect(
@@ -184,7 +206,11 @@ struct PanelCanvasLayout {
     }
     private func updateMouseRouting() {
         guard let geometry=model.notchGeometry else { return }
-        let inside=PanelCanvasLayout.islandFrame(for:geometry,state:model.panelState).contains(NSEvent.mouseLocation)
+        let inside=PanelCanvasLayout.islandFrame(
+            for:geometry,
+            state:model.panelState,
+            placement:SettingsStore.shared.collapsedStatusPlacement
+        ).contains(NSEvent.mouseLocation)
         if panel.ignoresMouseEvents == inside { panel.ignoresMouseEvents = !inside }
         guard inside != isPointerInside else {
             if inside, PanelEventRoutingPolicy.isInteractive(model.panelState),
@@ -221,7 +247,11 @@ struct PanelCanvasLayout {
     private func acquireInteractionFocus() {
         guard let geometry=model.notchGeometry,
               PanelEventRoutingPolicy.isInteractive(model.panelState),
-              PanelCanvasLayout.islandFrame(for:geometry,state:model.panelState).contains(NSEvent.mouseLocation) else { return }
+              PanelCanvasLayout.islandFrame(
+                for:geometry,
+                state:model.panelState,
+                placement:SettingsStore.shared.collapsedStatusPlacement
+              ).contains(NSEvent.mouseLocation) else { return }
         NSApp.activate(ignoringOtherApps:true)
         panel.makeKey()
     }

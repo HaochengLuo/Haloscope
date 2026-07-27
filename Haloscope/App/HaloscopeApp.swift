@@ -197,6 +197,30 @@ struct SettingsView: View {
     private var displaySettings: some View {
         VStack(alignment:.leading,spacing:14) {
             HStack(spacing:16) {
+                Text(t("settings.collapsed_status"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                Picker("",selection:$settings.collapsedStatusPlacement) {
+                    ForEach(CollapsedStatusPlacement.allCases) { placement in
+                        Text(placement.localizedLabel(language:settings.language)).tag(placement)
+                    }
+                }
+                .labelsHidden()
+                .frame(width:Self.displayControlWidth)
+            }
+
+            HStack(spacing:16) {
+                Text(t("settings.motion_effects"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                Picker("",selection:$settings.motionEffectPreference) {
+                    ForEach(MotionEffectPreference.allCases) { preference in
+                        Text(preference.localizedLabel(language:settings.language)).tag(preference)
+                    }
+                }
+                .labelsHidden()
+                .frame(width:Self.displayControlWidth)
+            }
+
+            HStack(spacing:16) {
                 Text(t("settings.appearance"))
                     .frame(width:Self.displayLabelWidth,alignment:.trailing)
                 Picker("",selection:$settings.islandAppearance) {
@@ -322,7 +346,7 @@ struct SettingsView: View {
 
     private func copyDiagnostics() {
         let path = CodexProcessResolver().resolve(custom:settings.customCodexPath) ?? "unavailable"
-        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)\nIsland appearance: \(settings.islandAppearance.rawValue)\nLiquid Glass card opacity: \(settings.liquidGlassCardOpacity)\nLiquid Glass text color: \(settings.liquidGlassTextColor.rawValue)"
+        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)\nCollapsed status placement: \(settings.collapsedStatusPlacement.rawValue)\nMotion effects: \(settings.motionEffectPreference.rawValue)\nIsland appearance: \(settings.islandAppearance.rawValue)\nLiquid Glass card opacity: \(settings.liquidGlassCardOpacity)\nLiquid Glass text color: \(settings.liquidGlassTextColor.rawValue)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value,forType:.string)
     }
@@ -334,6 +358,8 @@ struct SettingsView: View {
         settings.islandAppearance = .solidBlack
         settings.liquidGlassCardOpacity = IslandAppearance.defaultLiquidGlassCardOpacity
         settings.liquidGlassTextColor = .white
+        settings.collapsedStatusPlacement = .belowNotch
+        settings.motionEffectPreference = .followSystem
         settings.clickOutside = true
         settings.binding = .recent
         settings.selectedThreadID = nil

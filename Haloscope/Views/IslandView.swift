@@ -102,8 +102,9 @@ private struct IslandNativeScrollView<Content: View>: NSViewRepresentable {
 
 private struct NotchRevealModifier: ViewModifier {
     let visible: Bool
+    let reduceMotion: Bool
     func body(content: Content) -> some View {
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        if reduceMotion {
             content.opacity(visible ? 1 : 0)
         } else {
             content
@@ -199,26 +200,17 @@ private struct IslandPanelSurface: View {
 struct IslandView: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject private var settings = SettingsStore.shared
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     private let accent = Color(red:0.30,green:0.78,blue:0.48)
     var body: some View {
         ZStack(alignment:.top) {
-            VStack(spacing:isExpanded ? 14:8) {
-                HStack(spacing:8) {
-                    Circle().fill(statusColor).frame(width:8,height:8)
-                    Text(statusText).font(.system(size:11,weight:.medium)).lineLimit(1)
-                    Spacer()
-                    Text(model.activeQuotaWindow.map { "7D  \($0.roundedRemainingPercent)%" } ?? "7D  —").monospacedDigit().font(.system(size:11,weight:.semibold))
-                }
-                .padding(.horizontal,8)
-                .frame(width:compactStatusWidth,height:22)
-                .background(isExpanded ? card:Color.clear,in:UnevenRoundedRectangle(cornerRadii:.init(bottomLeading:8,bottomTrailing:8),style:.continuous))
-                if isExpanded {
-                    details.transition(.modifier(active:NotchRevealModifier(visible:false),identity:NotchRevealModifier(visible:true)))
-                }
-            }
+            panelContent
             .padding(contentInsets)
             .frame(width:islandSize.width,height:islandSize.height,alignment:.top)
-            .background { IslandPanelSurface(shape:panelShape,appearance:settings.islandAppearance) }
+            .background {
+                IslandPanelSurface(shape:panelShape,appearance:settings.islandAppearance)
+                    .opacity(isCollapsedHidden ? 0:1)
+            }
             .clipShape(panelShape)
             .shadow(color:.black.opacity(panelShadowOpacity),radius:isExpanded ? 14:5,y:isExpanded ? 8:3)
             .contentShape(panelShape)
@@ -240,6 +232,59 @@ struct IslandView: View {
             Button(t("context.quit")) { NSApplication.shared.terminate(nil) }
         }
     }
+    private var panelContent: some View {
+        VStack(spacing:isExpanded ? 14:8) {
+            collapsedHeader
+            if isExpanded {
+                details.transition(
+                    .modifier(
+                        active:NotchRevealModifier(visible:false,reduceMotion:shouldReduceMotion),
+                        identity:NotchRevealModifier(visible:true,reduceMotion:shouldReduceMotion)
+                    )
+                )
+            }
+        }
+    }
+    @ViewBuilder private var collapsedHeader: some View {
+        if isCollapsedHidden {
+            Color.clear
+        } else if usesBesideNotchLayout {
+            besideNotchStatus.transition(.opacity)
+        } else {
+            compactStatus
+                .background(
+                    isExpanded ? card:Color.clear,
+                    in:UnevenRoundedRectangle(cornerRadii:.init(bottomLeading:8,bottomTrailing:8),style:.continuous)
+                )
+                .transition(.opacity)
+        }
+    }
+    private var compactStatus: some View {
+        HStack(spacing:8) {
+            Circle().fill(statusColor).frame(width:8,height:8)
+            Text(statusText).font(.system(size:11,weight:.medium)).lineLimit(1)
+            Spacer()
+            Text(model.activeQuotaWindow.map { "7D  \($0.roundedRemainingPercent)%" } ?? "7D  —")
+                .monospacedDigit()
+                .font(.system(size:11,weight:.semibold))
+        }
+        .padding(.horizontal,8)
+        .frame(width:compactStatusWidth,height:22)
+    }
+    private var besideNotchStatus: some View {
+        HStack(spacing:0) {
+            Circle()
+                .fill(statusColor)
+                .frame(width:8,height:8)
+                .frame(width:PanelCanvasLayout.besideStatusLeadingWidth)
+            Color.clear.frame(width:notchWidth)
+            Text(model.activeQuotaWindow.map { "\($0.roundedRemainingPercent)%" } ?? "—%")
+                .monospacedDigit()
+                .font(.system(size:11,weight:.semibold))
+                .frame(width:PanelCanvasLayout.besideStatusTrailingWidth)
+        }
+        .frame(width:islandSize.width,height:islandSize.height)
+    }
     private var isExpanded: Bool { model.panelState == .expanded || model.panelState == .settingsPresented }
     private var usesLiquidGlass: Bool { settings.islandAppearance == .liquidGlass }
     private var usesBlackText: Bool { usesLiquidGlass && settings.liquidGlassTextColor == .black }
@@ -250,20 +295,36 @@ struct IslandView: View {
     private var card: Color { Color.white.opacity(usesLiquidGlass ? settings.liquidGlassCardOpacity:0.06) }
     private var border: Color { Color.white.opacity(usesLiquidGlass ? 0.22:0.085) }
     private var panelShadowOpacity: Double {
+        if isCollapsedHidden { return 0 }
         if usesLiquidGlass { return isExpanded ? 0.38:0.16 }
         return isExpanded ? 0.62:0.24
     }
     private var hasPhysicalNotch: Bool { model.notchGeometry?.hasPhysicalNotch == true }
     private var isPhysicalNotch: Bool { hasPhysicalNotch && !isExpanded }
+    private var usesBesideNotchLayout: Bool {
+        isPhysicalNotch && settings.collapsedStatusPlacement == .besideNotch
+    }
+    private var isCollapsedHidden: Bool {
+        !isExpanded && settings.collapsedStatusPlacement == .hidden
+    }
     private var compactStatusWidth: CGFloat { PanelCanvasLayout.compactStatusWidth(for:model.notchGeometry) }
     private var notchHeight: CGFloat { model.notchGeometry?.effectiveNotchFrame.height ?? 32 }
+    private var notchWidth: CGFloat { model.notchGeometry?.effectiveNotchFrame.width ?? 190 }
     private var islandSize: CGSize {
         guard let geometry=model.notchGeometry else { return isExpanded ? .init(width:420,height:440):.init(width:220,height:30) }
-        return isExpanded ? geometry.expandedPanelFrame.size:geometry.collapsedPanelFrame.size
+        return isExpanded
+            ? geometry.expandedPanelFrame.size
+            : PanelCanvasLayout.collapsedSize(
+                for:geometry,
+                placement:settings.collapsedStatusPlacement
+            )
     }
     private var topOffset: CGFloat { hasPhysicalNotch ? 0:PanelCanvasLayout.detachedTopGap }
     private var contentInsets: EdgeInsets {
         if isExpanded { return .init(top:hasPhysicalNotch ? notchHeight:14,leading:36,bottom:20,trailing:36) }
+        if usesBesideNotchLayout || isCollapsedHidden {
+            return .init(top:0,leading:0,bottom:0,trailing:0)
+        }
         return .init(top:hasPhysicalNotch ? notchHeight:4,leading:0,bottom:hasPhysicalNotch ? 0:4,trailing:0)
     }
     private var panelShape: IslandShellShape {
@@ -274,8 +335,11 @@ struct IslandView: View {
             isDetached:!hasPhysicalNotch
         )
     }
+    private var shouldReduceMotion: Bool {
+        settings.motionEffectPreference.shouldReduceMotion(systemSetting:systemReduceMotion)
+    }
     private var islandMotion: Animation {
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return .linear(duration:0.10) }
+        if shouldReduceMotion { return .linear(duration:0.10) }
         return isExpanded
             ? .spring(response:0.42,dampingFraction:0.80,blendDuration:0)
             : .spring(response:0.45,dampingFraction:1.0,blendDuration:0)
