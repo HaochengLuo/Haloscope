@@ -98,7 +98,6 @@ Haloscope does not require Accessibility or screen-recording permission. Because
 ## Current limitations
 
 - Codex App Server does not reveal which thread is currently selected in Codex Desktop, so Haloscope may label the selection as manual, detected, inferred, or unavailable.
-- Haloscope currently shows the 7-day allowance exposed by Codex App Server; it does not show the discontinued 5-hour allowance.
 - Daily token values follow calendar-day buckets rather than a rolling 24-hour window.
 - Live token, context, and subagent details appear only when Codex App Server provides them. Haloscope does not fill missing data with estimates.
 - The beta is currently distributed as source code only. A notarized downloadable app is not available yet.
