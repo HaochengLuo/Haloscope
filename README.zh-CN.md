@@ -98,7 +98,6 @@ Haloscope 不需要辅助功能或屏幕录制权限。由于需要启动本机 
 ## 当前限制
 
 - Codex App Server 不会告知 Haloscope 当前在 Codex Desktop 中选中了哪个线程，因此界面可能将线程标记为手动、已检测、推断或不可用。
-- Haloscope 目前显示 Codex App Server 提供的 7 天额度，不显示已经取消的 5 小时额度。
 - 每日 Token 数据按自然日统计，不是滚动 24 小时数据。
 - 实时 Token、上下文和子代理详情只有在 Codex App Server 提供时才会显示；Haloscope 不会用估算值补全缺失数据。
 - 当前 Beta 仅通过源代码发布，暂时没有经过公证、可直接下载的应用。
