@@ -61,6 +61,39 @@ struct PanelPrimaryClickRoutingPolicy {
     }
 }
 
+struct PanelExpansionHapticGate {
+    static let minimumInterval: TimeInterval = 0.3
+
+    private var previousState: PanelState
+    private var lastFeedbackTime: Date?
+
+    init(initialState: PanelState, lastFeedbackTime: Date? = nil) {
+        previousState = initialState
+        self.lastFeedbackTime = lastFeedbackTime
+    }
+
+    mutating func shouldPerform(
+        currentState: PanelState,
+        isEnabled: Bool,
+        now: Date = Date()
+    ) -> Bool {
+        let wasExpanded = Self.isExpandedPresentation(previousState)
+        let isExpanded = Self.isExpandedPresentation(currentState)
+        defer { previousState = currentState }
+        guard isEnabled, !wasExpanded, isExpanded else { return false }
+        if let lastFeedbackTime,
+           now.timeIntervalSince(lastFeedbackTime) < Self.minimumInterval {
+            return false
+        }
+        lastFeedbackTime = now
+        return true
+    }
+
+    private static func isExpandedPresentation(_ state: PanelState) -> Bool {
+        state == .expanded || state == .settingsPresented
+    }
+}
+
 struct PanelCanvasLayout {
     static let horizontalShadowInset: CGFloat = 20
     static let bottomShadowInset: CGFloat = 28
@@ -137,8 +170,10 @@ struct PanelCanvasLayout {
     private weak var targetScreen: NSScreen?
     private var isPointerInside = false
     private var primaryClickStart: NSPoint?
+    private var expansionHapticGate: PanelExpansionHapticGate
     init(model: IslandViewModel) {
         self.model = model
+        expansionHapticGate = PanelExpansionHapticGate(initialState:model.panelState)
         panel = IslandPanel(contentRect:NSRect(x:0,y:0,width:220,height:38),styleMask:[.borderless,.fullSizeContentView],backing:.buffered,defer:false)
         super.init(); panel.isOpaque = false; panel.backgroundColor = .clear; panel.level = .popUpMenu; panel.animationBehavior = .none
         panel.collectionBehavior = [.canJoinAllSpaces,.stationary,.ignoresCycle,.fullScreenAuxiliary]
@@ -184,6 +219,12 @@ struct PanelCanvasLayout {
         let frame=PanelCanvasLayout.canvasFrame(for:geometry)
         if panel.frame != frame { panel.setFrame(frame,display:true) }
         panel.orderFrontRegardless()
+        if expansionHapticGate.shouldPerform(
+            currentState:model.panelState,
+            isEnabled:SettingsStore.shared.hapticFeedbackOnExpand
+        ) {
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment,performanceTime:.now)
+        }
     }
     private func installMouseTracking() {
         panel.ignoresMouseEvents = true

@@ -114,6 +114,7 @@ enum L10n {
         "motion.follow_system": .init(english:"Follow System",simplifiedChinese:"跟随系统"),
         "motion.reduced": .init(english:"Reduced Motion",simplifiedChinese:"减少动态效果"),
         "motion.full": .init(english:"Full Motion",simplifiedChinese:"完整动态效果"),
+        "settings.haptic_on_expand": .init(english:"Haptic feedback on expand",simplifiedChinese:"展开时触控板震动"),
         "settings.appearance": .init(english:"Island appearance",simplifiedChinese:"灵动岛外观"),
         "appearance.solid_black": .init(english:"Dynamic Island · Black",simplifiedChinese:"Dynamic Island · 纯黑"),
         "appearance.liquid_glass": .init(english:"Liquid Glass · Clear",simplifiedChinese:"Liquid Glass · 全透明"),

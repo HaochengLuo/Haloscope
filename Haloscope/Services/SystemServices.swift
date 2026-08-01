@@ -171,6 +171,7 @@ enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
     @Published var liquidGlassTextColor = LiquidGlassTextColor.white { didSet { defaults.set(liquidGlassTextColor.rawValue,forKey:"liquidGlassTextColor") } }
     @Published var collapsedStatusPlacement = CollapsedStatusPlacement.belowNotch { didSet { defaults.set(collapsedStatusPlacement.rawValue,forKey:"collapsedStatusPlacement") } }
     @Published var motionEffectPreference = MotionEffectPreference.followSystem { didSet { defaults.set(motionEffectPreference.rawValue,forKey:"motionEffectPreference") } }
+    @Published var hapticFeedbackOnExpand = false { didSet { defaults.set(hapticFeedbackOnExpand,forKey:"hapticFeedbackOnExpand") } }
     @Published var launchAtLogin = false
     @Published var binding = BindingKind.recent { didSet { defaults.set(binding.rawValue, forKey:"binding") } }
     @Published var selectedThreadID: String? { didSet { defaults.set(selectedThreadID, forKey:"selectedThreadID") } }
@@ -191,6 +192,7 @@ enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
         liquidGlassTextColor = defaults.string(forKey:"liquidGlassTextColor").flatMap(LiquidGlassTextColor.init(rawValue:)) ?? .white
         collapsedStatusPlacement = defaults.string(forKey:"collapsedStatusPlacement").flatMap(CollapsedStatusPlacement.init(rawValue:)) ?? .belowNotch
         motionEffectPreference = defaults.string(forKey:"motionEffectPreference").flatMap(MotionEffectPreference.init(rawValue:)) ?? .followSystem
+        hapticFeedbackOnExpand = defaults.object(forKey:"hapticFeedbackOnExpand") as? Bool ?? false
         binding = defaults.string(forKey:"binding").flatMap(BindingKind.init(rawValue:)) ?? .recent
         selectedThreadID = defaults.string(forKey:"selectedThreadID")
         SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
