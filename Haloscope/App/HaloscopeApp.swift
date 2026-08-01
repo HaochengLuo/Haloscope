@@ -221,6 +221,15 @@ struct SettingsView: View {
             }
 
             HStack(spacing:16) {
+                Text(t("settings.haptic_on_expand"))
+                    .frame(width:Self.displayLabelWidth,alignment:.trailing)
+                Toggle("",isOn:$settings.hapticFeedbackOnExpand)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .frame(width:Self.displayControlWidth,alignment:.leading)
+            }
+
+            HStack(spacing:16) {
                 Text(t("settings.appearance"))
                     .frame(width:Self.displayLabelWidth,alignment:.trailing)
                 Picker("",selection:$settings.islandAppearance) {
@@ -346,7 +355,7 @@ struct SettingsView: View {
 
     private func copyDiagnostics() {
         let path = CodexProcessResolver().resolve(custom:settings.customCodexPath) ?? "unavailable"
-        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)\nCollapsed status placement: \(settings.collapsedStatusPlacement.rawValue)\nMotion effects: \(settings.motionEffectPreference.rawValue)\nIsland appearance: \(settings.islandAppearance.rawValue)\nLiquid Glass card opacity: \(settings.liquidGlassCardOpacity)\nLiquid Glass text color: \(settings.liquidGlassTextColor.rawValue)"
+        let value = "Haloscope diagnostics\nmacOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\nCodex path: \(path)\nCodex version: \(codexVersion ?? "unknown")\nExperimental API: \(settings.experimental)\nLogin item: \(loginStatus.rawValue)\nLanguage: \(settings.language.rawValue)\nCollapsed status placement: \(settings.collapsedStatusPlacement.rawValue)\nMotion effects: \(settings.motionEffectPreference.rawValue)\nHaptic feedback on expand: \(settings.hapticFeedbackOnExpand)\nIsland appearance: \(settings.islandAppearance.rawValue)\nLiquid Glass card opacity: \(settings.liquidGlassCardOpacity)\nLiquid Glass text color: \(settings.liquidGlassTextColor.rawValue)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value,forType:.string)
     }
@@ -360,6 +369,7 @@ struct SettingsView: View {
         settings.liquidGlassTextColor = .white
         settings.collapsedStatusPlacement = .belowNotch
         settings.motionEffectPreference = .followSystem
+        settings.hapticFeedbackOnExpand = false
         settings.clickOutside = true
         settings.binding = .recent
         settings.selectedThreadID = nil

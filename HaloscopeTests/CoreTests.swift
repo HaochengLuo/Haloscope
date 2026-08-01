@@ -167,6 +167,44 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.collapsedIdle,start:start,end:start))
         XCTAssertFalse(PanelPrimaryClickRoutingPolicy.shouldOpenCodex(state:.expanded,start:nil,end:start))
     }
+    func testExpansionHapticGateOnlyTriggersOnRealExpansionEdges() {
+        let start=Date(timeIntervalSince1970:1_800_000_000)
+        var gate=PanelExpansionHapticGate(initialState:.collapsedIdle)
+        XCTAssertTrue(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.settingsPresented,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.collapsedIdle,isEnabled:true,now:start))
+        XCTAssertTrue(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start.addingTimeInterval(0.31)))
+    }
+    func testExpansionHapticGateTracksStateWhileDisabled() {
+        var gate=PanelExpansionHapticGate(initialState:.collapsedIdle)
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:false))
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:true))
+        XCTAssertFalse(gate.shouldPerform(currentState:.collapsedIdle,isEnabled:false))
+        XCTAssertTrue(gate.shouldPerform(currentState:.expanded,isEnabled:true))
+    }
+    func testExpansionHapticGateTreatsSettingsPresentationAsExpanded() {
+        let start=Date(timeIntervalSince1970:1_800_000_000)
+        var gate=PanelExpansionHapticGate(initialState:.collapsedIdle)
+        XCTAssertTrue(gate.shouldPerform(currentState:.settingsPresented,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.settingsPresented,isEnabled:true,now:start))
+
+        var alreadyExpanded=PanelExpansionHapticGate(initialState:.expanded)
+        XCTAssertFalse(alreadyExpanded.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        var settingsShown=PanelExpansionHapticGate(initialState:.settingsPresented)
+        XCTAssertFalse(settingsShown.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+    }
+    func testExpansionHapticGateSuppressesRapidRepeatedFeedback() {
+        let start=Date(timeIntervalSince1970:1_800_000_000)
+        var gate=PanelExpansionHapticGate(initialState:.collapsedIdle)
+        XCTAssertTrue(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start))
+        XCTAssertFalse(gate.shouldPerform(currentState:.collapsedIdle,isEnabled:true,now:start.addingTimeInterval(0.1)))
+        XCTAssertFalse(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start.addingTimeInterval(0.2)))
+        XCTAssertFalse(gate.shouldPerform(currentState:.collapsedIdle,isEnabled:true,now:start.addingTimeInterval(0.25)))
+        XCTAssertTrue(gate.shouldPerform(currentState:.expanded,isEnabled:true,now:start.addingTimeInterval(0.31)))
+    }
     func testConnectionTransitionsPreserveInteractivePanelPresentation() {
         XCTAssertEqual(PanelPresentationPolicy.connectedState(from:.expanded),.expanded)
         XCTAssertEqual(PanelPresentationPolicy.failedState(from:.expanded),.expanded)
@@ -249,10 +287,16 @@ final class CoreTests: XCTestCase {
         let suite="HaloscopeTests-\(UUID())", widgetSuite="HaloscopeWidgetTests-\(UUID())"
         let d=UserDefaults(suiteName:suite)!, widgetDefaults=UserDefaults(suiteName:widgetSuite)!
         defer { d.removePersistentDomain(forName:suite); widgetDefaults.removePersistentDomain(forName:widgetSuite) }
-        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english; s.islandAppearance = .liquidGlass; s.liquidGlassCardOpacity = 0.21; s.liquidGlassTextColor = .black; s.collapsedStatusPlacement = .besideNotch; s.motionEffectPreference = .fullMotion
+        let s=SettingsStore(defaults:d,widgetDefaults:widgetDefaults); s.experimental=true; s.binding = .running; s.selectedThreadID = "thread-1"; s.language = .english; s.islandAppearance = .liquidGlass; s.liquidGlassCardOpacity = 0.21; s.liquidGlassTextColor = .black; s.collapsedStatusPlacement = .besideNotch; s.motionEffectPreference = .fullMotion; s.hapticFeedbackOnExpand = true
         let restored=SettingsStore(defaults:UserDefaults(suiteName:suite)!,widgetDefaults:widgetDefaults)
-        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english); XCTAssertEqual(restored.islandAppearance,.liquidGlass); XCTAssertEqual(restored.liquidGlassCardOpacity,0.20); XCTAssertEqual(restored.liquidGlassTextColor,.black); XCTAssertEqual(restored.collapsedStatusPlacement,.besideNotch); XCTAssertEqual(restored.motionEffectPreference,.fullMotion)
+        XCTAssertTrue(UserDefaults(suiteName:suite)!.bool(forKey:"experimental")); XCTAssertEqual(restored.binding,.running); XCTAssertEqual(restored.selectedThreadID,"thread-1"); XCTAssertEqual(restored.language,.english); XCTAssertEqual(restored.islandAppearance,.liquidGlass); XCTAssertEqual(restored.liquidGlassCardOpacity,0.20); XCTAssertEqual(restored.liquidGlassTextColor,.black); XCTAssertEqual(restored.collapsedStatusPlacement,.besideNotch); XCTAssertEqual(restored.motionEffectPreference,.fullMotion); XCTAssertTrue(restored.hapticFeedbackOnExpand)
         XCTAssertEqual(SharedLanguagePreference.read(from:widgetDefaults),.english)
+    }
+    @MainActor func testHapticFeedbackOnExpandDefaultsToDisabled() {
+        let suite="HaloscopeHapticFeedbackTests-\(UUID())"
+        let defaults=UserDefaults(suiteName:suite)!
+        defer { defaults.removePersistentDomain(forName:suite) }
+        XCTAssertFalse(SettingsStore(defaults:defaults,widgetDefaults:nil).hapticFeedbackOnExpand)
     }
     @MainActor func testCollapsedStatusPlacementDefaultsAndUnknownValues() {
         let suite="HaloscopeCollapsedStatusTests-\(UUID())"
@@ -301,6 +345,8 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(MotionEffectPreference.followSystem.localizedLabel(language:.english),"Follow System")
         XCTAssertEqual(MotionEffectPreference.reducedMotion.localizedLabel(language:.simplifiedChinese),"减少动态效果")
         XCTAssertEqual(MotionEffectPreference.fullMotion.localizedLabel(language:.english),"Full Motion")
+        XCTAssertEqual(L10n.text("settings.haptic_on_expand",language:.english),"Haptic feedback on expand")
+        XCTAssertEqual(L10n.text("settings.haptic_on_expand",language:.simplifiedChinese),"展开时触控板震动")
         XCTAssertEqual(IslandAppearance.liquidGlass.localizedLabel(language:.simplifiedChinese),"Liquid Glass · 全透明")
         XCTAssertEqual(LiquidGlassTextColor.black.localizedLabel(language:.simplifiedChinese),"黑色")
     }
