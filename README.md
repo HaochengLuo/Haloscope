@@ -45,7 +45,8 @@ Liquid Glass uses the native effect on macOS 26 and a translucent material fallb
 
 ## Install from source
 
-> The current beta is source-only, so there is no prebuilt `.app` or `.dmg` to download yet.
+> The signed beta remains source-only. The optional Unsigned Preview below is a separate
+> downloadable channel and is not Developer ID signed or notarized.
 
 ### Before you start
 
@@ -88,6 +89,32 @@ You do not need a paid Apple Developer Program membership for personal use. Xcod
 7. To add the widget, right-click the desktop, choose **Edit Widgets**, search for **Haloscope**, and add the small widget.
 
 Haloscope normally finds Codex automatically in common installation locations. If it does not, open Haloscope Settings and choose the `codex` executable manually.
+
+## Optional Unsigned Preview
+
+Technical testers who do not want to build with Xcode may use the optional
+[Unsigned Preview installation](docs/UNSIGNED_PREVIEW.md). It keeps the notch
+panel and Codex connection, but intentionally excludes the desktop Widget,
+App Group/shared Keychain access, Apple notarization, automatic updates, and
+launch at login. It is manually updated, requires the documented macOS approval
+flow, and every download must be checksum-verified. The Personal Team source
+build above remains the recommended no-cost installation method.
+
+### Download the Preview DMG
+
+Open the [GitHub Releases page](https://github.com/HaochengLuo/Haloscope/releases)
+and choose the newest **Haloscope Unsigned Preview** pre-release. Download the
+matching `-macos-universal-unsigned.dmg` and `-SHA256SUMS.txt` assets, then verify
+the checksum before opening the DMG:
+
+```bash
+shasum -a 256 -c Haloscope-<version>-SHA256SUMS.txt
+```
+
+After the result reports `OK`, open the DMG, drag `Haloscope Preview.app` to
+`Applications`, and follow the macOS Finder or Privacy & Security approval
+flow. The release also provides a ZIP and dSYM archive for testers and
+diagnostics; none of these assets are automatically updated.
 
 ## Privacy
 

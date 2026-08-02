@@ -45,7 +45,8 @@ Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex a
 
 ## 从源码安装
 
-> 当前 Beta 仅提供源代码，暂时没有可直接下载的 `.app` 或 `.dmg`。
+> 签名 Beta 仍然只提供源代码。下面的未签名预览版是独立的可下载通道，
+> 不提供 Developer ID 签名或 Apple 公证。
 
 ### 开始之前
 
@@ -88,6 +89,20 @@ Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex a
 7. 如需添加小组件，请在桌面右键选择“编辑小组件”，搜索“Haloscope”，添加小号组件。
 
 Haloscope 通常可以从常见安装位置自动找到 Codex。如果没有检测到，请打开 Haloscope 设置并手动选择 `codex` 可执行文件。
+
+## 可选的未签名预览版
+
+不想使用 Xcode 构建的技术测试者可以使用[可选的未签名预览版安装方式](docs/UNSIGNED_PREVIEW.md)。它保留刘海面板和 Codex 连接，但明确不包含桌面小组件、App Group/共享钥匙串访问、Apple 公证、自动更新和登录时启动。更新需要手动完成，并且必须按照文档通过 macOS 系统界面批准；每次下载都应先验证校验和。上面的 Personal Team 源码构建仍然是推荐的免费安装方式。
+
+### 下载 Preview DMG
+
+打开 [GitHub Releases 页面](https://github.com/HaochengLuo/Haloscope/releases)，选择最新的 **Haloscope Unsigned Preview** pre-release。下载匹配的 `-macos-universal-unsigned.dmg` 和 `-SHA256SUMS.txt` 文件，打开 DMG 前先验证校验和：
+
+```bash
+shasum -a 256 -c Haloscope-<version>-SHA256SUMS.txt
+```
+
+确认结果为 `OK` 后，打开 DMG，将 `Haloscope Preview.app` 拖入“应用程序”，并按照 Finder 或“隐私与安全性”中的 macOS 批准流程操作。每个 Release 还会提供 ZIP 和 dSYM 归档，分别用于备用安装和诊断；这些文件都不会自动更新。
 
 ## 隐私
 

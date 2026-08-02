@@ -54,3 +54,32 @@ GitHub Actions 的 `release` Environment 应开启 required reviewer，发行标
 P12 与 P8 使用 base64 编码后保存。只有
 `HALOSCOPE_ENABLE_SIGNED_RELEASES` 明确设为 `true` 时，推送 `v*` 标签才会运行签名、
 公证和二进制 GitHub Release 工作流；默认关闭时可安全发布仅源码 Release。含有连字符的版本会自动标记为 pre-release。
+
+## Unsigned Preview 通道
+
+Unsigned Preview 是给技术测试者使用的可选、明确降级的下载通道，不改变
+`Haloscope` 主 target 的签名发行路径。它使用独立的 `HaloscopePreview` target、
+`Haloscope Preview.app` 产品名和 `com.lamluo.haloscope.preview` Bundle ID，构建为
+arm64/x86_64 通用二进制，并通过临时目录中的 `scripts/release_preview.sh` 生成
+ZIP、DMG、dSYM（如可用）和 SHA-256 清单。
+
+Preview 不包含 Widget extension，不使用 App Group、共享 Keychain、登录项或
+Sparkle，也不提供 Developer ID 信任和公证。DMG 内包含 `README-FIRST.txt`；安装、
+校验、升级、卸载和手动 QA 矩阵见 [Unsigned Preview 文档](UNSIGNED_PREVIEW.md)。
+不要使用 `scripts/release_app.sh` 的签名发行流程代替 Preview 流程，也不要为
+Preview 关闭 Gatekeeper 或自动移除 quarantine。
+
+Preview workflow 仅支持手动 `workflow_dispatch`，要求输入精确的
+`PUBLISH UNSIGNED PREVIEW` 确认字符串，检查标签提交包含在 `main` 中，并使用
+`preview` Environment 在创建 GitHub pre-release 前等待人工批准。它永远不会将
+Preview 标记为 `latest`，也不会读取 Developer ID 或公证秘密。初始任务不添加
+Homebrew Cask；即使未来使用 Homebrew，也不能由 Cask 创造 Apple 信任。
+
+可下载 Preview Release 必须包含以下资产：
+
+- `Haloscope-<version>-macos-universal-unsigned.dmg`：Finder 安装包。
+- `Haloscope-<version>-macos-universal-unsigned.zip`：备用归档安装包。
+- `Haloscope-<version>-SHA256SUMS.txt`：DMG、ZIP 和可用 dSYM 的校验清单。
+- `Haloscope-<version>-macos-universal.dSYM.zip`：可选诊断符号。
+
+发布前运行 `scripts/release_preview.sh --tag vX.Y.Z-unsigned-preview.N`，它会在仓库外的临时目录构建、生成 DMG/ZIP/dSYM/校验和，并对最终 DMG 和解压后的 ZIP 再次验证。提交到 `main` 后，通过 Preview workflow 的人工确认、`preview` Environment 审批和 GitHub pre-release 上传完成公开下载；不要把 `dist/` 二进制资产提交进仓库。

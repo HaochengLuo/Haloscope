@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import WidgetKit
 
 enum PanelState: String { case hidden, collapsedIdle, collapsedHover, expanded, settingsPresented, disconnected, error }
 
@@ -36,9 +35,7 @@ actor WidgetSnapshotCoordinator {
 
     init(
         store: WidgetQuotaSnapshotStore = WidgetQuotaSnapshotStore(),
-        reloadTimelines: @escaping @Sendable () -> Void = {
-            WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
-        },
+        reloadTimelines: @escaping @Sendable () -> Void = {},
         reloadPolicy: WidgetTimelineReloadPolicy = .init()
     ) {
         self.store = store
@@ -97,7 +94,11 @@ actor WidgetSnapshotCoordinator {
     @Published var notchGeometry: ScreenGeometry?
     @Published var isPinnedExpanded = false
     var onPanelStateChange: (() -> Void)?
-    private let client = JSONRPCClient(); private let widgetSnapshots = WidgetSnapshotCoordinator(); private let retryPolicy = RPCRequestRetryPolicy(); private var reconnectTask: Task<Void,Never>?; private var recoveryTask: Task<Void,Never>?; private var monitoringTask: Task<Void,Never>?; private var accountMonitoringTask: Task<Void,Never>?; private var isRefreshingAccount = false; private var isRefreshingThreads = false
+    private let client = JSONRPCClient(); private let widgetSnapshots: WidgetSnapshotCoordinator?; private let retryPolicy = RPCRequestRetryPolicy(); private var reconnectTask: Task<Void,Never>?; private var recoveryTask: Task<Void,Never>?; private var monitoringTask: Task<Void,Never>?; private var accountMonitoringTask: Task<Void,Never>?; private var isRefreshingAccount = false; private var isRefreshingThreads = false
+    init(widgetSnapshots: WidgetSnapshotCoordinator? = DistributionChannel.supportsWidget ? WidgetSnapshotCoordinator() : nil) {
+        self.widgetSnapshots = widgetSnapshots
+    }
+    var hasWidgetSnapshotCoordinator: Bool { widgetSnapshots != nil }
     var bindingKind: BindingKind { SettingsStore.shared.binding }
     var selectedThreadID: String? { SettingsStore.shared.selectedThreadID }
     var activeQuotaWindow: RateWindow? {
@@ -299,7 +300,7 @@ actor WidgetSnapshotCoordinator {
         return true
     }
     private func restoreCachedQuotaIfNeeded() {
-        let widgetSnapshots = widgetSnapshots
+        guard DistributionChannel.supportsWidget, let widgetSnapshots else { return }
         Task { [weak self] in
             guard let snapshot = await widgetSnapshots.read(),
                   snapshot.availability == .available,
@@ -321,6 +322,7 @@ actor WidgetSnapshotCoordinator {
         }
     }
     private func publishWidgetSnapshot(window: RateWindow?, account: AccountSnapshot) {
+        guard DistributionChannel.supportsWidget, let widgetSnapshots else { return }
         guard let window else { publishUnavailableIfNeeded(t("error.quota_unavailable")); return }
         let snapshot = WidgetQuotaSnapshot(
             remainingPercent:window.remainingPercent,
@@ -332,11 +334,10 @@ actor WidgetSnapshotCoordinator {
             availability:.available,
             errorMessage:nil
         )
-        let widgetSnapshots = widgetSnapshots
         Task { await widgetSnapshots.publish(snapshot) }
     }
     private func publishUnavailableIfNeeded(_ message: String) {
-        let widgetSnapshots = widgetSnapshots
+        guard DistributionChannel.supportsWidget, let widgetSnapshots else { return }
         Task { await widgetSnapshots.publishUnavailableIfNeeded(message) }
     }
     var hasRecentThreadActivity: Bool { guard let updated=threads.first?.updatedAt else { return false }; return Date.now.timeIntervalSince(updated) < 20 }

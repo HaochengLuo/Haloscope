@@ -1,0 +1,142 @@
+name: Unsigned Preview Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing preview tag to package
+        required: true
+        type: string
+      release_notes:
+        description: Release notes for the pre-release
+        required: true
+        type: string
+      confirmation:
+        description: Type the exact safety confirmation
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  attestations: write
+
+concurrency:
+  group: preview-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  package-and-publish:
+    name: Build and publish Unsigned Preview
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: preview
+
+    steps:
+      - name: Check confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          [[ "$CONFIRMATION" == "PUBLISH UNSIGNED PREVIEW" ]] || {
+            echo "The exact confirmation string is required." >&2
+            exit 1
+          }
+
+      - name: Resolve tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="$INPUT_TAG"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ || "$tag" != *preview* ]]; then
+            echo "Invalid Unsigned Preview tag: $tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify tag is contained in main
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git rev-parse --verify "refs/tags/$TAG"
+          git fetch origin main
+          git merge-base --is-ancestor "$TAG^{commit}" origin/main || {
+            echo "Preview tag must point to a commit contained in main." >&2
+            exit 1
+          }
+
+      - name: Run tests and validate configuration
+        run: |
+          set -euo pipefail
+          swift test --disable-sandbox
+          zsh -n scripts/build_app.sh
+          zsh -n scripts/release_app.sh
+          zsh -n scripts/release_preview.sh
+          zsh -n scripts/validate_preview_target.sh
+          zsh -n scripts/validate_preview_artifacts.sh
+          plutil -lint Packaging/Info.plist
+          plutil -lint Packaging/Preview-Info.plist
+          scripts/validate_preview_target.sh
+
+      - name: Build and validate Preview artifacts
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: scripts/release_preview.sh --tag "$TAG"
+
+      - name: Generate build provenance attestation when supported
+        if: ${{ success() }}
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.2.0
+        with:
+          subject-path: 'dist/*'
+        continue-on-error: true
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: haloscope-unsigned-preview-${{ steps.release.outputs.version }}
+          path: |
+            dist/Haloscope-${{ steps.release.outputs.version }}-macos-universal-unsigned.zip
+            dist/Haloscope-${{ steps.release.outputs.version }}-macos-universal-unsigned.dmg
+            dist/Haloscope-${{ steps.release.outputs.version }}-macos-universal.dSYM.zip
+            dist/Haloscope-${{ steps.release.outputs.version }}-SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Create or update GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          assets=(
+            "dist/Haloscope-${VERSION}-macos-universal-unsigned.zip"
+            "dist/Haloscope-${VERSION}-macos-universal-unsigned.dmg"
+            "dist/Haloscope-${VERSION}-SHA256SUMS.txt"
+          )
+          [[ -f "dist/Haloscope-${VERSION}-macos-universal.dSYM.zip" ]] && assets+=("dist/Haloscope-${VERSION}-macos-universal.dSYM.zip")
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "Haloscope Unsigned Preview ${VERSION}" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease \
+              --latest=false
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --title "Haloscope Unsigned Preview ${VERSION}" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease \
+              --latest=false \
+              --verify-tag
+          fi

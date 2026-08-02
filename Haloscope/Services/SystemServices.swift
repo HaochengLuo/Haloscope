@@ -59,9 +59,19 @@ enum LoginItemStatus: String {
 }
 @MainActor final class LoginItemService {
     func status() -> LoginItemStatus {
-        switch SMAppService.mainApp.status { case .enabled: .enabled; case .notRegistered: .notRegistered; case .requiresApproval: .requiresApproval; case .notFound: .notFound; @unknown default: .unavailable }
+        guard DistributionChannel.supportsLoginItem else { return .unavailable }
+        switch SMAppService.mainApp.status {
+        case .enabled: return .enabled
+        case .notRegistered: return .notRegistered
+        case .requiresApproval: return .requiresApproval
+        case .notFound: return .notFound
+        @unknown default: return .unavailable
+        }
     }
-    func setEnabled(_ enabled: Bool) throws { enabled ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
+    func setEnabled(_ enabled: Bool) throws {
+        guard DistributionChannel.supportsLoginItem else { return }
+        enabled ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister()
+    }
 }
 
 struct Backoff: Sendable {
@@ -154,11 +164,14 @@ enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
 }
 
 @MainActor final class SettingsStore: ObservableObject {
+    private static let unsignedPreviewDisclosureKey = "didShowUnsignedPreviewDisclosure.v2"
     static let shared = SettingsStore()
     @Published var language = AppLanguage.system {
         didSet {
             defaults.set(language.rawValue,forKey:SharedLanguagePreference.defaultsKey)
-            SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
+            if DistributionChannel.supportsSharedStorage {
+                SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
+            }
             NotificationCenter.default.post(name:.haloscopeLanguageDidChange,object:language)
         }
     }
@@ -178,9 +191,10 @@ enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
     private let defaults: UserDefaults
     private let widgetDefaults: UserDefaults?
     var hasOfferedLaunchAtLogin: Bool { defaults.bool(forKey:"didOfferLaunchAtLogin") }
+    var hasShownUnsignedPreviewDisclosure: Bool { defaults.bool(forKey:Self.unsignedPreviewDisclosureKey) }
     init(defaults: UserDefaults = .standard, widgetDefaults: UserDefaults? = SharedLanguagePreference.widgetDefaults()) {
         self.defaults = defaults
-        self.widgetDefaults = widgetDefaults
+        self.widgetDefaults = DistributionChannel.supportsSharedStorage ? widgetDefaults : nil
         language = SharedLanguagePreference.read(from:defaults)
         customCodexPath = defaults.string(forKey:"codexPath")
         experimental = defaults.bool(forKey:"experimental")
@@ -195,9 +209,12 @@ enum MotionEffectPreference: String, CaseIterable, Identifiable, Sendable {
         hapticFeedbackOnExpand = defaults.object(forKey:"hapticFeedbackOnExpand") as? Bool ?? false
         binding = defaults.string(forKey:"binding").flatMap(BindingKind.init(rawValue:)) ?? .recent
         selectedThreadID = defaults.string(forKey:"selectedThreadID")
-        SharedLanguagePreference.writeToWidget(language,defaults:widgetDefaults)
+        if DistributionChannel.supportsSharedStorage {
+            SharedLanguagePreference.writeToWidget(language,defaults:self.widgetDefaults)
+        }
     }
     func markLaunchAtLoginOffered() { defaults.set(true,forKey:"didOfferLaunchAtLogin") }
+    func markUnsignedPreviewDisclosureShown() { defaults.set(true,forKey:Self.unsignedPreviewDisclosureKey) }
 }
 
 struct ScreenGeometry: Equatable, Sendable {
