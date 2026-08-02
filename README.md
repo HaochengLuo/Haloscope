@@ -89,6 +89,16 @@ You do not need a paid Apple Developer Program membership for personal use. Xcod
 
 Haloscope normally finds Codex automatically in common installation locations. If it does not, open Haloscope Settings and choose the `codex` executable manually.
 
+## Optional Unsigned Preview
+
+Technical testers who do not want to build with Xcode may use the optional
+[Unsigned Preview installation](docs/UNSIGNED_PREVIEW.md). It keeps the notch
+panel and Codex connection, but intentionally excludes the desktop Widget,
+App Group/shared Keychain access, Apple notarization, automatic updates, and
+launch at login. It is manually updated, requires the documented macOS approval
+flow, and every download must be checksum-verified. The Personal Team source
+build above remains the recommended no-cost installation method.
+
 ## Privacy
 
 Haloscope communicates with a local `codex app-server` process to show your activity and usage. It does not read Codex Desktop's private database, capture the screen, collect browser cookies, or ask for ChatGPT credentials.

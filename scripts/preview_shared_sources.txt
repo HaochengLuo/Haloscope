@@ -1,0 +1,12 @@
+Haloscope/App/HaloscopeApp.swift
+Haloscope/CodexClient/CodexAppServer.swift
+Haloscope/CodexClient/CodexPayloadDecoder.swift
+Haloscope/CodexClient/JSONValue.swift
+Haloscope/Models/CoreModels.swift
+Haloscope/Services/SystemServices.swift
+Haloscope/Shared/DistributionChannel.swift
+Haloscope/Shared/Localization.swift
+Haloscope/Shared/WidgetQuotaSnapshot.swift
+Haloscope/ViewModels/IslandViewModel.swift
+Haloscope/Views/IslandView.swift
+Haloscope/Window/NotchPanelController.swift

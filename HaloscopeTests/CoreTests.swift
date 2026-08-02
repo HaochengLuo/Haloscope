@@ -2,6 +2,45 @@ import XCTest
 @testable import Haloscope
 
 final class CoreTests: XCTestCase {
+    func testDistributionChannelCapabilitiesAreExplicit() {
+#if HALOSCOPE_UNSIGNED_PREVIEW
+        XCTAssertEqual(DistributionChannel.kind,"unsigned-preview")
+        XCTAssertFalse(DistributionChannel.supportsWidget)
+        XCTAssertFalse(DistributionChannel.supportsSharedStorage)
+        XCTAssertFalse(DistributionChannel.supportsLoginItem)
+        XCTAssertFalse(DistributionChannel.isAppleTrustedDistribution)
+#else
+        XCTAssertEqual(DistributionChannel.kind,"developer-id")
+        XCTAssertTrue(DistributionChannel.supportsWidget)
+        XCTAssertTrue(DistributionChannel.supportsSharedStorage)
+        XCTAssertTrue(DistributionChannel.supportsLoginItem)
+        XCTAssertTrue(DistributionChannel.isAppleTrustedDistribution)
+#endif
+        XCTAssertEqual(DistributionChannel.previewLabel,"Unsigned Preview")
+    }
+    func testPreviewAndRegularProductIdentitiesAreDistinct() {
+        XCTAssertNotEqual(DistributionChannel.bundleIdentifier,"com.lamluo.haloscope.preview")
+        XCTAssertNotEqual(DistributionChannel.displayName,"Haloscope Preview")
+    }
+    @MainActor func testWidgetSnapshotCoordinatorIsCapabilityInjected() {
+        let model = IslandViewModel()
+#if HALOSCOPE_UNSIGNED_PREVIEW
+        XCTAssertFalse(model.hasWidgetSnapshotCoordinator)
+#else
+        XCTAssertTrue(model.hasWidgetSnapshotCoordinator)
+#endif
+    }
+#if HALOSCOPE_UNSIGNED_PREVIEW
+    @MainActor func testUnsignedPreviewDoesNotUseSharedStorageForSettings() {
+        let suite="HaloscopePreviewSettingsTests-\(UUID())", widgetSuite="HaloscopePreviewWidgetTests-\(UUID())"
+        let defaults=UserDefaults(suiteName:suite)!, widgetDefaults=UserDefaults(suiteName:widgetSuite)!
+        defer { defaults.removePersistentDomain(forName:suite); widgetDefaults.removePersistentDomain(forName:widgetSuite) }
+        let settings=SettingsStore(defaults:defaults,widgetDefaults:widgetDefaults)
+        settings.language = .english
+        XCTAssertNil(SharedLanguagePreference.widgetDefaults())
+        XCTAssertNil(widgetDefaults.object(forKey:SharedLanguagePreference.defaultsKey))
+    }
+#endif
     @MainActor func testCodexDesktopApplicationUsesCanonicalBundleIdentifier() {
         let expected=URL(fileURLWithPath:"/Applications/Codex.app")
         var requestedIdentifier:String?

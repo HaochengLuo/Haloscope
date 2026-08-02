@@ -1,17 +1,17 @@
 import SwiftUI
 import AppKit
+#if !HALOSCOPE_UNSIGNED_PREVIEW
 import WidgetKit
+#endif
 
 enum HaloscopeDeepLink {
     static let widgetScheme = "haloscope-widget"
     static let legacyHaloscopeScheme = "haloscope"
     static let legacyCodexIslandScheme = "codexisland"
 
-    private static let supportedSchemes = Set([
-        widgetScheme,
-        legacyHaloscopeScheme,
-        legacyCodexIslandScheme
-    ])
+    private static let supportedSchemes: Set<String> = DistributionChannel.supportsWidget
+        ? [widgetScheme, legacyHaloscopeScheme, legacyCodexIslandScheme]
+        : []
 
     static func handles(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
@@ -25,18 +25,25 @@ enum HaloscopeDeepLink {
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+#if !HALOSCOPE_UNSIGNED_PREVIEW
+    private var controller: NotchPanelController?; private var settingsWindow: NSWindow?; private let model = IslandViewModel(widgetSnapshots:WidgetSnapshotCoordinator(reloadTimelines:{ WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget") }))
+#else
     private var controller: NotchPanelController?; private var settingsWindow: NSWindow?; private let model = IslandViewModel()
+#endif
+    private var previewDisclosureAlert: NSAlert?
+    private var previewDisclosureHostWindow: NSWindow?
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A hosted XCTest launches the app executable. Keep onboarding and the
         // live Codex connection out of that process so tests stay deterministic.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         NSApp.setActivationPolicy(.accessory); controller = NotchPanelController(model:model); model.connect()
-        migrateLegacyWidgetDeepLinkIfNeeded()
+        if DistributionChannel.supportsWidget { migrateLegacyWidgetDeepLinkIfNeeded() }
         NSWorkspace.shared.notificationCenter.addObserver(self,selector:#selector(didWake),name:NSWorkspace.didWakeNotification,object:nil)
         NSWorkspace.shared.notificationCenter.addObserver(self,selector:#selector(willSleep),name:NSWorkspace.willSleepNotification,object:nil)
         NotificationCenter.default.addObserver(self,selector:#selector(openSettings),name:.haloscopeOpenSettings,object:nil)
         NotificationCenter.default.addObserver(self,selector:#selector(languageDidChange),name:.haloscopeLanguageDidChange,object:nil)
-        offerLaunchAtLoginIfNeeded()
+        if DistributionChannel.supportsLoginItem { offerLaunchAtLoginIfNeeded() }
+        presentUnsignedPreviewDisclosureIfNeeded()
     }
     @objc private func didWake() { controller?.recalculateGeometry(); model.reconnect() }
     @objc private func willSleep() { model.disconnect() }
@@ -49,13 +56,19 @@ enum HaloscopeDeepLink {
     }
     @objc private func languageDidChange() {
         settingsWindow?.title = L10n.text("app.settings_title",language:SettingsStore.shared.language)
-        WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
+        if DistributionChannel.supportsWidget {
+#if !HALOSCOPE_UNSIGNED_PREVIEW
+            WidgetCenter.shared.reloadTimelines(ofKind:"CodexWeeklyQuotaWidget")
+#endif
+        }
     }
     func application(_ application: NSApplication, open urls: [URL]) {
+        guard DistributionChannel.supportsWidget else { return }
         guard urls.contains(where:HaloscopeDeepLink.handles) else { return }
         showIslandFromWidget()
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard DistributionChannel.supportsWidget else { return false }
         showIslandFromWidget()
         return false
     }
@@ -78,6 +91,7 @@ enum HaloscopeDeepLink {
         }
     }
     private func offerLaunchAtLoginIfNeeded() {
+        guard DistributionChannel.supportsLoginItem else { return }
         let settings = SettingsStore.shared, service = LoginItemService()
         guard !settings.hasOfferedLaunchAtLogin else { return }
         settings.markLaunchAtLoginOffered()
@@ -94,6 +108,49 @@ enum HaloscopeDeepLink {
             if alert.runModal() == .alertFirstButtonReturn {
                 do { try service.setEnabled(true); settings.launchAtLogin = service.status() == .enabled }
                 catch { openSettings() }
+            }
+        }
+    }
+    private func presentUnsignedPreviewDisclosureIfNeeded() {
+        guard !DistributionChannel.isAppleTrustedDistribution else { return }
+        let settings = SettingsStore.shared
+        guard !settings.hasShownUnsignedPreviewDisclosure else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.previewDisclosureAlert == nil else { return }
+            let alert = NSAlert()
+            alert.messageText = L10n.text("distribution.preview.disclosure.title",language:settings.language)
+            alert.informativeText = L10n.text("distribution.preview.disclosure.message",language:settings.language)
+            alert.addButton(withTitle:L10n.text("action.later",language:settings.language))
+
+            // Present as a sheet after launch has entered the run loop. A
+            // blocking runModal() here can leave an accessory app's alert
+            // visible but unable to receive mouse events while the notch
+            // panel is still being ordered and activated.
+            let host = NSWindow(
+                contentRect:NSRect(x:0,y:0,width:1,height:1),
+                styleMask:[.titled],
+                backing:.buffered,
+                defer:false
+            )
+            host.title = L10n.text("distribution.preview.disclosure.title",language:settings.language)
+            host.isOpaque = false
+            host.backgroundColor = .clear
+            host.alphaValue = 0
+            host.hasShadow = false
+            host.ignoresMouseEvents = true
+            host.level = .modalPanel
+            host.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]
+            host.center()
+
+            self.previewDisclosureAlert = alert
+            self.previewDisclosureHostWindow = host
+            NSApp.activate(ignoringOtherApps:true)
+            host.makeKeyAndOrderFront(nil)
+            alert.beginSheetModal(for:host) { [weak self, weak host] _ in
+                settings.markUnsignedPreviewDisclosureShown()
+                host?.orderOut(nil)
+                self?.previewDisclosureAlert = nil
+                self?.previewDisclosureHostWindow = nil
             }
         }
     }
@@ -130,16 +187,39 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             Form {
-                Picker(t("settings.language"),selection:$settings.language) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language.displayName(in:settings.language)).tag(language)
+                Section {
+                    Picker(t("settings.language"),selection:$settings.language) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.displayName(in:settings.language)).tag(language)
+                        }
+                    }
+                    Toggle(t("settings.collapse_outside"),isOn:$settings.clickOutside)
+                    if DistributionChannel.supportsLoginItem {
+                        Toggle(t("settings.launch_login"),isOn:$settings.launchAtLogin)
+                            .onChange(of:settings.launchAtLogin) { _, enabled in setLoginItem(enabled) }
+                        Text(L10n.format("settings.login_status",language:settings.language,loginStatus.localizedLabel(language:settings.language)))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(t("distribution.preview.launch_login_disabled"))
+                            .frame(maxWidth:.infinity,alignment:.leading)
+                            .fixedSize(horizontal:false,vertical:true)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                Toggle(t("settings.collapse_outside"),isOn:$settings.clickOutside)
-                Toggle(t("settings.launch_login"),isOn:$settings.launchAtLogin)
-                    .onChange(of:settings.launchAtLogin) { _, enabled in setLoginItem(enabled) }
-                Text(L10n.format("settings.login_status",language:settings.language,loginStatus.localizedLabel(language:settings.language)))
-                    .foregroundStyle(.secondary)
+                if !DistributionChannel.isAppleTrustedDistribution {
+                    Section {
+                        VStack(alignment:.leading,spacing:8) {
+                            Label(t("distribution.preview.label"),systemImage:"exclamationmark.triangle")
+                                .font(.headline)
+                            Text(t("distribution.preview.settings_notice"))
+                            Text(t("distribution.preview.widget_unavailable"))
+                            Text(t("distribution.preview.manual_updates"))
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth:.infinity,alignment:.leading)
+                        .fixedSize(horizontal:false,vertical:true)
+                    }
+                }
             }
             .tabItem { Text(t("settings.tab.general")) }
 
@@ -184,8 +264,13 @@ struct SettingsView: View {
         .frame(width:620,height:420)
         .environment(\.locale,settings.language.locale)
         .onAppear {
-            loginStatus = LoginItemService().status()
-            settings.launchAtLogin = loginStatus == .enabled
+            if DistributionChannel.supportsLoginItem {
+                loginStatus = LoginItemService().status()
+                settings.launchAtLogin = loginStatus == .enabled
+            } else {
+                loginStatus = .unavailable
+                settings.launchAtLogin = false
+            }
             Task { await detectCodex() }
         }
     }
@@ -297,6 +382,7 @@ struct SettingsView: View {
     }
 
     private func setLoginItem(_ enabled: Bool) {
+        guard DistributionChannel.supportsLoginItem else { return }
         do {
             try LoginItemService().setEnabled(enabled)
             loginStatus = LoginItemService().status()

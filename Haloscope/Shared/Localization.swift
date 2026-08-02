@@ -48,7 +48,8 @@ enum SharedLanguagePreference {
     }
 
     static func widgetDefaults() -> UserDefaults? {
-        UserDefaults(suiteName:WidgetQuotaSnapshotStore.configuredAppGroupIdentifier)
+        guard DistributionChannel.supportsSharedStorage else { return nil }
+        return UserDefaults(suiteName:WidgetQuotaSnapshotStore.configuredAppGroupIdentifier)
     }
 
     static func widgetLanguage() -> AppLanguage {
@@ -85,6 +86,13 @@ enum L10n {
         "language.english": .init(english:"English",simplifiedChinese:"English"),
 
         "app.settings_title": .init(english:"Haloscope Settings",simplifiedChinese:"Haloscope 设置"),
+        "distribution.preview.label": .init(english:"Unsigned Preview",simplifiedChinese:"未签名预览"),
+        "distribution.preview.disclosure.title": .init(english:"Unsigned Preview",simplifiedChinese:"未签名预览"),
+        "distribution.preview.disclosure.message": .init(english:"This is an unsigned technical preview. It is not notarized by Apple, does not contain the desktop Widget, and receives manual updates only. Install only artifacts from the official project release and verify the SHA-256 checksum before opening them.",simplifiedChinese:"这是一个未签名的技术预览版。它未经 Apple 公证，不包含桌面小组件，且只能手动更新。请只安装来自项目官方 Release 的文件，并在打开前验证 SHA-256 校验和。"),
+        "distribution.preview.settings_notice": .init(english:"Unsigned Preview · The desktop Widget, Apple notarization, automatic updates, and launch at login are unavailable. Updates are manual. Verify the SHA-256 checksum for every downloaded artifact.",simplifiedChinese:"未签名预览 · 不提供桌面小组件、Apple 公证、自动更新或登录时启动。更新需要手动完成。请为每个下载文件验证 SHA-256 校验和。"),
+        "distribution.preview.widget_unavailable": .init(english:"The desktop Widget is not included in Unsigned Preview because it requires signed App Group and shared Keychain access.",simplifiedChinese:"未签名预览不包含桌面小组件，因为它需要签名的 App Group 和共享钥匙串访问。"),
+        "distribution.preview.manual_updates": .init(english:"Updates are manual: download the next official Unsigned Preview artifact, verify its checksum, then replace this app.",simplifiedChinese:"更新需要手动完成：下载下一个官方未签名预览文件，验证校验和后替换当前应用。"),
+        "distribution.preview.launch_login_disabled": .init(english:"Launch at Login is unavailable in Unsigned Preview. Start Haloscope Preview manually after signing in.",simplifiedChinese:"未签名预览不提供登录时启动。登录后请手动启动 Haloscope Preview。"),
         "onboarding.title": .init(english:"Keep the Codex widget up to date?",simplifiedChinese:"让 Codex 小组件保持最新？"),
         "onboarding.message": .init(english:"Enable the login item so Haloscope can launch at sign-in and keep the desktop widget updated. You can change this later in Settings.",simplifiedChinese:"开启登录项后，Haloscope 会在登录时启动并更新桌面小组件。你也可以稍后在设置中更改。"),
         "action.enable": .init(english:"Enable",simplifiedChinese:"开启"),

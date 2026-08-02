@@ -89,6 +89,10 @@ Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex a
 
 Haloscope 通常可以从常见安装位置自动找到 Codex。如果没有检测到，请打开 Haloscope 设置并手动选择 `codex` 可执行文件。
 
+## 可选的未签名预览版
+
+不想使用 Xcode 构建的技术测试者可以使用[可选的未签名预览版安装方式](docs/UNSIGNED_PREVIEW.md)。它保留刘海面板和 Codex 连接，但明确不包含桌面小组件、App Group/共享钥匙串访问、Apple 公证、自动更新和登录时启动。更新需要手动完成，并且必须按照文档通过 macOS 系统界面批准；每次下载都应先验证校验和。上面的 Personal Team 源码构建仍然是推荐的免费安装方式。
+
 ## 隐私
 
 Haloscope 通过本机的 `codex app-server` 显示活动和使用情况。它不会读取 Codex Desktop 私有数据库、截取屏幕、收集浏览器 Cookie，也不会要求提供 ChatGPT 凭证。

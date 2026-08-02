@@ -127,6 +127,7 @@ struct WidgetQuotaSnapshotStore: Sendable {
     }
 
     func read() throws -> WidgetQuotaSnapshot? {
+        guard DistributionChannel.supportsSharedStorage || explicitDirectoryURL != nil else { return nil }
         if explicitDirectoryURL != nil {
             let fileURL = try snapshotURL()
             guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
@@ -176,6 +177,7 @@ struct WidgetQuotaSnapshotStore: Sendable {
     }
 
     func write(_ snapshot: WidgetQuotaSnapshot) throws {
+        guard DistributionChannel.supportsSharedStorage || explicitDirectoryURL != nil else { return }
         let data = try encoder().encode(snapshot)
         if explicitDirectoryURL != nil {
             let fileURL = try snapshotURL(createDirectory: true)
