@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml/badge.svg)](https://github.com/HaochengLuo/Haloscope/actions/workflows/ci.yml)
 
-Haloscope 将 Codex 状态放在 Mac 屏幕顶部，方便随时查看。刘海面板可以显示 7 天剩余额度、重置时间、当前活动、最近对话和 Token 统计；桌面小组件则持续显示最重要的额度信息。
+Haloscope 以刘海形式将 Codex 状态放在 Mac 屏幕顶部，方便随时查看。刘海面板可以显示 7 天剩余额度、重置时间、当前活动、最近对话和 Token 统计；桌面小组件则持续显示最重要的额度信息。
 
 Haloscope 支持 macOS 14 或更高版本，数据直接来自本机的 `codex app-server`。它不会读取 Codex Desktop 私有数据库、截取界面或猜测使用量。
 
