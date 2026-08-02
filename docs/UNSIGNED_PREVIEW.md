@@ -30,8 +30,9 @@ compatibility only; it is not equivalent to Developer ID signing.
 
 ## Verify the download first
 
-Download the ZIP or DMG and the matching `SHA256SUMS.txt` file from the official
-project release. In Terminal, from the directory containing those files, run:
+Download the ZIP or DMG and the matching `SHA256SUMS.txt` file from the latest
+**Haloscope Unsigned Preview** pre-release on the [GitHub Releases page](https://github.com/HaochengLuo/Haloscope/releases).
+In Terminal, from the directory containing those files, run:
 
 ```bash
 shasum -a 256 -c Haloscope-<version>-SHA256SUMS.txt

@@ -74,3 +74,12 @@ Preview workflow 仅支持手动 `workflow_dispatch`，要求输入精确的
 `preview` Environment 在创建 GitHub pre-release 前等待人工批准。它永远不会将
 Preview 标记为 `latest`，也不会读取 Developer ID 或公证秘密。初始任务不添加
 Homebrew Cask；即使未来使用 Homebrew，也不能由 Cask 创造 Apple 信任。
+
+可下载 Preview Release 必须包含以下资产：
+
+- `Haloscope-<version>-macos-universal-unsigned.dmg`：Finder 安装包。
+- `Haloscope-<version>-macos-universal-unsigned.zip`：备用归档安装包。
+- `Haloscope-<version>-SHA256SUMS.txt`：DMG、ZIP 和可用 dSYM 的校验清单。
+- `Haloscope-<version>-macos-universal.dSYM.zip`：可选诊断符号。
+
+发布前运行 `scripts/release_preview.sh --tag vX.Y.Z-unsigned-preview.N`，它会在仓库外的临时目录构建、生成 DMG/ZIP/dSYM/校验和，并对最终 DMG 和解压后的 ZIP 再次验证。提交到 `main` 后，通过 Preview workflow 的人工确认、`preview` Environment 审批和 GitHub pre-release 上传完成公开下载；不要把 `dist/` 二进制资产提交进仓库。
