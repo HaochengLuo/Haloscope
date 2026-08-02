@@ -92,10 +92,9 @@ Haloscope normally finds Codex automatically in common installation locations. I
 
 ## Optional Unsigned Preview
 
-Technical testers who do not want to build with Xcode may use the optional
+If you do not want to build with Xcode, you may use the
 [Unsigned Preview installation](docs/UNSIGNED_PREVIEW.md). It keeps the notch
-panel and Codex connection, but intentionally excludes the desktop Widget,
-App Group/shared Keychain access, Apple notarization, automatic updates, and
+panel and Codex connection, but excludes the desktop Widget, automatic updates, and
 launch at login. It is manually updated, requires the documented macOS approval
 flow, and every download must be checksum-verified. The Personal Team source
 build above remains the recommended no-cost installation method.
