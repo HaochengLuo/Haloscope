@@ -101,6 +101,9 @@ final class CoreTests: XCTestCase {
         let q = RateWindow(id:"codex",usedPercent:37,windowDurationMins:10080,resetsAt:.now)
         XCTAssertEqual(q.localizedDisplayName(language:.simplifiedChinese),"7 天额度")
         XCTAssertEqual(q.localizedDisplayName(language:.english),"7-day quota")
+        let fiveHour = RateWindow(id:"five-hour",limitName:"300-minute quota",usedPercent:10,windowDurationMins:300)
+        XCTAssertEqual(fiveHour.localizedDisplayName(language:.simplifiedChinese),"5 小时额度")
+        XCTAssertEqual(fiveHour.localizedDisplayName(language:.english),"5-hour quota")
         XCTAssertEqual(q.remainingPercent,63); XCTAssertEqual(q.roundedRemainingPercent,63)
         var over=q; over.usedPercent=120; XCTAssertEqual(over.remainingPercent,0)
         var under=q; under.usedPercent = -10; XCTAssertEqual(under.remainingPercent,100)
@@ -404,5 +407,141 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(timestampOnly.materiallyDiffers(from:restored))
         var changed=restored; changed.availableResetCredits=1
         XCTAssertTrue(changed.materiallyDiffers(from:restored))
+    }
+}
+
+@MainActor final class MonitoringNetworkTests: XCTestCase {
+    private func makeServer(mode: String) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("haloscope-fake-\(UUID())")
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        let script = directory.appendingPathComponent("server.py")
+        let source = """
+        #!/usr/bin/python3
+        import json, os, pathlib, signal, sys, time
+        mode = "\(mode)"
+        events = pathlib.Path(__file__).with_suffix('.events')
+        def record(text):
+            with events.open('a') as f: f.write(text + '\\n')
+        record('start')
+        required = ['plugins', 'remote_plugin', 'apps', 'workspace_dependencies']
+        if any(not any(sys.argv[i:i+2] == ['--disable', flag] for i in range(len(sys.argv)-1)) for flag in required):
+            record('unsafe-start'); sys.exit(2)
+        if mode == 'startup-failure': sys.exit(3)
+        if mode == 'ignore-termination': signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        for line in sys.stdin:
+            request = json.loads(line)
+            method = request.get('method')
+            record(method)
+            if 'id' not in request: continue
+            if mode == 'initialize-timeout' and method == 'initialize': continue
+            if mode == 'quota-timeout' and method == 'account/rateLimits/read': continue
+            result = {}
+            if method == 'account/rateLimits/read':
+                result = {'rateLimits':{'limitId':'codex','planType':'plus','primary':{'usedPercent':20,'windowDurationMins':300,'resetsAt':1800000000}},'rateLimitResetCredits':{'availableCount':2}}
+            if method == 'thread/list': result = {'data':[]}
+            print(json.dumps({'id':request['id'],'result':result}),flush=True)
+            if mode == 'notifications' and method == 'thread/list':
+                for _ in range(20):
+                    print(json.dumps({'method':'account/rateLimits/updated','params':{'rateLimits':{'limitId':'codex','primary':{'usedPercent':31}}}}),flush=True)
+            if mode == 'exit-after-refresh' and method == 'thread/list': sys.exit(0)
+        record('stdin-closed')
+        if mode == 'ignore-termination':
+            while True: time.sleep(1)
+        """
+        try source.write(to:script,atomically:true,encoding:.utf8)
+        try FileManager.default.setAttributes([.posixPermissions:0o700],ofItemAtPath:script.path)
+        return script
+    }
+    private func events(_ script: URL) -> [String] {
+        ((try? String(contentsOf:script.deletingPathExtension().appendingPathExtension("events"),encoding:.utf8)) ?? "").split(separator:"\n").map(String.init)
+    }
+    private func waitUntil(_ predicate: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by:.seconds(6))
+        while !predicate(), ContinuousClock.now < deadline { try await Task.sleep(for:.milliseconds(20)) }
+        XCTAssertTrue(predicate())
+    }
+    private func assertPausesWithoutRelaunch(mode: String) async throws {
+        let script = try makeServer(mode:mode)
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let client = JSONRPCClient(requestTimeout:.seconds(2))
+        let model = IslandViewModel(widgetSnapshots:nil,client:client,resolveCodexPath:{script.path})
+        let cached = RateWindow(id:"cached",usedPercent:12)
+        model.windows = [cached]
+        model.connect()
+        try await waitUntil { model.connection == .error }
+        for _ in 0..<3 { model.refreshIfStale(maxAge:0); await model.refresh() }
+        try await Task.sleep(for:.milliseconds(1_300))
+        XCTAssertEqual(events(script).filter{$0 == "start"}.count,1)
+        XCTAssertFalse(events(script).contains("unsafe-start"))
+        XCTAssertEqual(model.connection,.error)
+        XCTAssertNotNil(model.errorMessage)
+        if mode != "exit-after-refresh" { XCTAssertEqual(model.windows,[cached]) }
+        await model.shutdown()
+    }
+    func testQuotaTimeoutPausesInsteadOfRestarting() async throws {
+        try await assertPausesWithoutRelaunch(mode:"quota-timeout")
+    }
+    func testFailedStartupDoesNotRetry() async throws {
+        try await assertPausesWithoutRelaunch(mode:"startup-failure")
+    }
+    func testInitializeTimeoutDoesNotRetry() async throws {
+        try await assertPausesWithoutRelaunch(mode:"initialize-timeout")
+    }
+    func testUnexpectedExitDoesNotRestart() async throws {
+        try await assertPausesWithoutRelaunch(mode:"exit-after-refresh")
+    }
+    func testNotificationBurstDoesNotFetchAgainAndPreservesSnapshotFields() async throws {
+        let script = try makeServer(mode:"notifications")
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path})
+        model.connect()
+        try await waitUntil { model.windows.first?.usedPercent == 31 }
+        try await Task.sleep(for:.milliseconds(200))
+        XCTAssertEqual(events(script).filter{$0 == "account/rateLimits/read"}.count,1)
+        XCTAssertEqual(events(script).filter{$0 == "account/usage/read"}.count,1)
+        XCTAssertEqual(events(script).filter{$0 == "thread/list"}.count,1)
+        XCTAssertEqual(model.windows.first?.windowDurationMins,300)
+        XCTAssertEqual(model.windows.first?.resetsAt,Date(timeIntervalSince1970:1_800_000_000))
+        XCTAssertEqual(model.availableResetCredits,2)
+        XCTAssertEqual(model.planType,"plus")
+        await model.refresh()
+        XCTAssertEqual(events(script).filter{$0 == "account/usage/read"}.count,1)
+        await model.shutdown()
+    }
+    func testExplicitReconnectStartsExactlyOneReplacement() async throws {
+        let script = try makeServer(mode:"quota-timeout")
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let model = IslandViewModel(widgetSnapshots:nil,client:JSONRPCClient(requestTimeout:.seconds(2)),resolveCodexPath:{script.path})
+        model.connect()
+        try await waitUntil { model.connection == .error }
+        model.reconnect()
+        try await waitUntil { model.connection == .error }
+        XCTAssertEqual(events(script).filter{$0 == "start"}.count,2)
+        await model.shutdown()
+    }
+    func testDisconnectReapsChildThatIgnoresTermination() async throws {
+        let script = try makeServer(mode:"ignore-termination")
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let client = JSONRPCClient()
+        try await client.connect(path:script.path,experimental:false)
+        let started = ContinuousClock.now
+        await client.disconnect()
+        XCTAssertLessThan(started.duration(to:.now),.seconds(4))
+        // Starting another connection also proves the transport finished its
+        // stop operation instead of leaving a stale child occupying the slot.
+        try await client.connect(path:script.path,experimental:false)
+        await client.disconnect()
+        XCTAssertEqual(events(script).filter{$0 == "start"}.count,2)
+    }
+    func testDisconnectDuringInitializeCannotReviveConnection() async throws {
+        let script = try makeServer(mode:"initialize-timeout")
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path})
+        model.connect()
+        try await waitUntil { events(script).contains("initialize") }
+        await model.shutdown()
+        try await Task.sleep(for:.milliseconds(100))
+        XCTAssertEqual(model.connection,.disconnected)
+        XCTAssertEqual(events(script).filter{$0 == "start"}.count,1)
     }
 }

@@ -3,7 +3,9 @@
 import hashlib, json, os, select, subprocess, sys, time
 
 CODEX = os.environ.get("CODEX_PATH", os.path.expanduser("~/.local/bin/codex"))
-p = subprocess.Popen([CODEX, "app-server", "--stdio"], stdin=subprocess.PIPE,
+p = subprocess.Popen([CODEX, "app-server", "--stdio", "--disable", "plugins",
+                      "--disable", "remote_plugin", "--disable", "apps",
+                      "--disable", "workspace_dependencies"], stdin=subprocess.PIPE,
                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
 next_id = 1
 results = []

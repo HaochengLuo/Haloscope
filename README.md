@@ -121,6 +121,12 @@ Haloscope communicates with a local `codex app-server` process to show your acti
 
 Haloscope does not require Accessibility or screen-recording permission. Because it needs to launch your local Codex CLI, the current app design runs outside the App Sandbox.
 
+## Network usage and recovery
+
+The monitoring child disables plugins, the remote plugin catalog, apps, and workspace dependencies through launch arguments without modifying the user's global Codex configuration. Threads are checked approximately every 60 seconds; quota is checked every 30 seconds, and usage history is attempted at most once per hour. Quota notifications merge into the cached snapshot.
+
+After a timeout, transport failure, or failed initialization, monitoring pauses and retains previous data. Haloscope does not automatically relaunch Codex. Resolve the network or login issue, then choose **Reconnect** in the panel's context menu. A CLI that rejects the disable flags fails the connection; Haloscope never retries with those flags removed. See the [network fix validation record](docs/NETWORK_USAGE.md).
+
 ## Current limitations
 
 - Codex App Server does not reveal which thread is currently selected in Codex Desktop, so Haloscope may label the selection as manual, detected, inferred, or unavailable.

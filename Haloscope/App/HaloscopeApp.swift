@@ -32,6 +32,7 @@ enum HaloscopeDeepLink {
 #endif
     private var previewDisclosureAlert: NSAlert?
     private var previewDisclosureHostWindow: NSWindow?
+    private var resumeAfterSleep = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A hosted XCTest launches the app executable. Keep onboarding and the
         // live Codex connection out of that process so tests stay deterministic.
@@ -45,8 +46,21 @@ enum HaloscopeDeepLink {
         if DistributionChannel.supportsLoginItem { offerLaunchAtLoginIfNeeded() }
         presentUnsignedPreviewDisclosureIfNeeded()
     }
-    @objc private func didWake() { controller?.recalculateGeometry(); model.reconnect() }
-    @objc private func willSleep() { model.disconnect() }
+    @objc private func didWake() {
+        controller?.recalculateGeometry()
+        if resumeAfterSleep { resumeAfterSleep = false; model.reconnect() }
+    }
+    @objc private func willSleep() {
+        resumeAfterSleep = model.connection == .connected || model.connection == .connecting
+        model.disconnect()
+    }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Task {
+            await model.shutdown()
+            sender.reply(toApplicationShouldTerminate:true)
+        }
+        return .terminateLater
+    }
     @objc private func openSettings() {
         if settingsWindow == nil {
             let window=NSWindow(contentRect:NSRect(x:0,y:0,width:620,height:420),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
