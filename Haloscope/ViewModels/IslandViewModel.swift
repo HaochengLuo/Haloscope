@@ -88,6 +88,7 @@ actor WidgetSnapshotCoordinator {
     @Published var availableResetCredits: Int?
     @Published var lastUpdated: Date?
     @Published var isMockData = false
+    @Published private(set) var hasActiveCodexTasks = false
     @Published var contextSnapshots: [String:ThreadContextSnapshot] = [:]
     @Published var realtimeStatuses: [String:RealtimeThreadStatus] = [:]
     @Published var threadDataUpdatedAt: Date?
@@ -101,18 +102,24 @@ actor WidgetSnapshotCoordinator {
     private var reconnectTask: Task<Void,Never>?
     private var disconnectTask: Task<Void,Never>?
     private var monitoringTask: Task<Void,Never>?
-    private var accountMonitoringTask: Task<Void,Never>?
+    private let readActivity: @Sendable () async -> Bool
+    private let intervals: MonitoringIntervals
     private var isRefreshingAccount = false
     private var isRefreshingThreads = false
     private var session = 0
     private var lastUsageAttempt: Date?
     private var lastAccountAttempt: Date?
+    private var lastThreadAttempt: Date?
     init(widgetSnapshots: WidgetSnapshotCoordinator? = DistributionChannel.supportsWidget ? WidgetSnapshotCoordinator() : nil,
          client: JSONRPCClient = JSONRPCClient(),
-         resolveCodexPath: @escaping () -> String? = { CodexProcessResolver().resolve(custom:SettingsStore.shared.customCodexPath) }) {
+         resolveCodexPath: @escaping () -> String? = { CodexProcessResolver().resolve(custom:SettingsStore.shared.customCodexPath) },
+         readActivity: @escaping @Sendable () async -> Bool = { await CodexActivityReader.shared.hasRunningTasks() },
+         intervals: MonitoringIntervals = .init()) {
         self.widgetSnapshots = widgetSnapshots
         self.client = client
         self.resolveCodexPath = resolveCodexPath
+        self.readActivity = readActivity
+        self.intervals = intervals
     }
     var hasWidgetSnapshotCoordinator: Bool { widgetSnapshots != nil }
     var bindingKind: BindingKind { SettingsStore.shared.binding }
@@ -201,24 +208,35 @@ actor WidgetSnapshotCoordinator {
         monitoringTask?.cancel()
         monitoringTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for:.seconds(60)); guard !Task.isCancelled else { return }
-                await self?.refreshThreads()
-            }
-        }
-        accountMonitoringTask?.cancel()
-        accountMonitoringTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for:.seconds(30)); guard !Task.isCancelled else { return }
-                await self?.refreshAccountData()
+                guard let interval = self?.intervals.activityCheck else { return }
+                do { try await Task.sleep(for:interval) } catch { return }
+                await self?.refreshDueDataIfActive()
             }
         }
     }
     private func stopMonitoring() {
         monitoringTask?.cancel(); monitoringTask = nil
-        accountMonitoringTask?.cancel(); accountMonitoringTask = nil
+    }
+    private func updateActivityState() async -> Bool {
+        let currentSession = session
+        let active = await readActivity()
+        guard isCurrent(currentSession), connection == .connected else { return false }
+        hasActiveCodexTasks = active
+        return active
+    }
+    private func refreshDueDataIfActive() async {
+        guard await updateActivityState() else { return }
+        let currentSession = session
+        if lastAccountAttempt == nil || Date.now.timeIntervalSince(lastAccountAttempt!) >= intervals.quota {
+            await refreshAccountData()
+        }
+        guard isCurrent(currentSession), connection == .connected, hasActiveCodexTasks else { return }
+        if lastThreadAttempt == nil || Date.now.timeIntervalSince(lastThreadAttempt!) >= intervals.threads {
+            await refreshThreads()
+        }
     }
     private func refreshAccountData() async {
-        guard connection == .connected, !Task.isCancelled, !isRefreshingAccount else { return }
+        guard connection == .connected, hasActiveCodexTasks, !Task.isCancelled, !isRefreshingAccount else { return }
         let currentSession = session
         isRefreshingAccount = true
         defer { if session == currentSession { isRefreshingAccount = false } }
@@ -229,7 +247,6 @@ actor WidgetSnapshotCoordinator {
             catch { return }
         }
         guard isCurrent(currentSession), connection == .connected else { return }
-        lastAccountAttempt = .now
         let decoder = CodexPayloadDecoder()
         var failures: [String] = []
         do {
@@ -239,21 +256,20 @@ actor WidgetSnapshotCoordinator {
             lastUpdated = .now
             publishWidgetSnapshot(window:account.primaryWindow ?? activeQuotaWindow, account:account)
         } catch {
-            guard isCurrent(currentSession) else { return }
+            guard isCurrent(currentSession), hasActiveCodexTasks else { return }
             if pauseForTransportFailure(error) { return }
             let message = L10n.format("error.quota",language:SettingsStore.shared.language,friendly(error))
             if windows.isEmpty { failures.append(message); publishUnavailableIfNeeded(message) }
         }
-        if lastUsageAttempt == nil || Date.now.timeIntervalSince(lastUsageAttempt!) >= 3_600 {
+        if lastUsageAttempt == nil || Date.now.timeIntervalSince(lastUsageAttempt!) >= intervals.history {
             // History is daily data. Cache the attempt as well as the success
             // so unsupported/failing endpoints are not retried every refresh.
-            lastUsageAttempt = .now
             do {
                 let value = try await requestWithTransientRetry("account/usage/read")
                 guard isCurrent(currentSession), connection == .connected else { return }
                 usageSummary = decoder.usage(value)
             } catch {
-                guard isCurrent(currentSession) else { return }
+                guard isCurrent(currentSession), hasActiveCodexTasks else { return }
                 if pauseForTransportFailure(error) { return }
                 // Usage history is supplementary. Preserve the last successful value.
             }
@@ -264,7 +280,14 @@ actor WidgetSnapshotCoordinator {
         let currentSession = session
         var failureIndex = 0
         while true {
-            guard isCurrent(currentSession), connection == .connected else { throw CancellationError() }
+            guard isCurrent(currentSession), connection == .connected,
+                  await updateActivityState() else { throw CancellationError() }
+            switch method {
+            case "account/rateLimits/read": lastAccountAttempt = .now
+            case "account/usage/read": lastUsageAttempt = .now
+            case "thread/list": lastThreadAttempt = .now
+            default: break
+            }
             do { return try await client.request(method, params:params) }
             catch {
                 guard let delay = retryPolicy.delay(afterFailure:failureIndex,error:error) else { throw error }
@@ -274,7 +297,7 @@ actor WidgetSnapshotCoordinator {
         }
     }
     private func refreshThreads() async {
-        guard connection == .connected, !Task.isCancelled, !isRefreshingThreads, !isRefreshingAccount else { return }
+        guard connection == .connected, hasActiveCodexTasks, !Task.isCancelled, !isRefreshingThreads, !isRefreshingAccount else { return }
         let currentSession = session
         isRefreshingThreads = true
         defer { if session == currentSession { isRefreshingThreads = false } }
@@ -283,13 +306,14 @@ actor WidgetSnapshotCoordinator {
             guard isCurrent(currentSession), connection == .connected else { return }
             threads = CodexPayloadDecoder().threads(value); threadDataUpdatedAt = .now
         } catch {
-            guard isCurrent(currentSession) else { return }
+            guard isCurrent(currentSession), hasActiveCodexTasks else { return }
             if pauseForTransportFailure(error) { return }
             if threads.isEmpty, windows.isEmpty { errorMessage = L10n.format("error.thread_refresh",language:SettingsStore.shared.language,friendly(error)) }
         }
     }
     private func loadMockData() {
         let now = Date.now
+        hasActiveCodexTasks = true
         windows = [.init(id:"mock-primary",limitName:"Mock preview",usedPercent:12,windowDurationMins:10080,resetsAt:now.addingTimeInterval(432000),limitID:"codex",role:.primary)]
         threads = [.init(id:"mock-running",preview:t("mock.running"),cwd:"~/Projects/Demo",updatedAt:now,status:.active,tokenUsage:.init(input:1200,cachedInput:600,output:350,reasoningOutput:180)),.init(id:"mock-idle",preview:t("mock.history"),cwd:"~/Projects/Demo",updatedAt:now.addingTimeInterval(-1800),status:.idle)]
         realtimeStatuses["mock-running"] = .init(threadID:"mock-running",type:"active",activeFlags:[],updatedAt:now)
@@ -313,18 +337,21 @@ actor WidgetSnapshotCoordinator {
             await previousCleanup?.value
             await client.disconnect()
         }
-        connection = .disconnected
+        connection = .disconnected; hasActiveCodexTasks = false
     }
     func shutdown() async {
         disconnect()
         await disconnectTask?.value
     }
     func refresh() async {
-        guard connection == .connected else { return }
-        isMockData = false; await refreshAccountData(); await refreshThreads()
+        guard connection == .connected, await updateActivityState() else { return }
+        let currentSession = session
+        isMockData = false; await refreshAccountData()
+        guard isCurrent(currentSession) else { return }
+        await refreshThreads()
     }
     func refreshIfStale(maxAge: TimeInterval = 30) {
-        guard connection == .connected else { return }
+        guard connection == .connected, hasActiveCodexTasks else { return }
         guard lastUpdated == nil || Date.now.timeIntervalSince(lastUpdated!) > maxAge else { return }
         guard lastAccountAttempt == nil || Date.now.timeIntervalSince(lastAccountAttempt!) >= 30 else { return }
         Task { [weak self] in await self?.refreshAccountData() }

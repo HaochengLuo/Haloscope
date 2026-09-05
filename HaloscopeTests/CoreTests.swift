@@ -464,7 +464,7 @@ final class CoreTests: XCTestCase {
         let script = try makeServer(mode:mode)
         defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
         let client = JSONRPCClient(requestTimeout:.seconds(2))
-        let model = IslandViewModel(widgetSnapshots:nil,client:client,resolveCodexPath:{script.path})
+        let model = IslandViewModel(widgetSnapshots:nil,client:client,resolveCodexPath:{script.path},readActivity:{true})
         let cached = RateWindow(id:"cached",usedPercent:12)
         model.windows = [cached]
         model.connect()
@@ -493,7 +493,7 @@ final class CoreTests: XCTestCase {
     func testNotificationBurstDoesNotFetchAgainAndPreservesSnapshotFields() async throws {
         let script = try makeServer(mode:"notifications")
         defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
-        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path})
+        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path},readActivity:{true})
         model.connect()
         try await waitUntil { model.windows.first?.usedPercent == 31 }
         try await Task.sleep(for:.milliseconds(200))
@@ -511,7 +511,7 @@ final class CoreTests: XCTestCase {
     func testExplicitReconnectStartsExactlyOneReplacement() async throws {
         let script = try makeServer(mode:"quota-timeout")
         defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
-        let model = IslandViewModel(widgetSnapshots:nil,client:JSONRPCClient(requestTimeout:.seconds(2)),resolveCodexPath:{script.path})
+        let model = IslandViewModel(widgetSnapshots:nil,client:JSONRPCClient(requestTimeout:.seconds(2)),resolveCodexPath:{script.path},readActivity:{true})
         model.connect()
         try await waitUntil { model.connection == .error }
         model.reconnect()
@@ -536,12 +536,131 @@ final class CoreTests: XCTestCase {
     func testDisconnectDuringInitializeCannotReviveConnection() async throws {
         let script = try makeServer(mode:"initialize-timeout")
         defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
-        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path})
+        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path},readActivity:{true})
         model.connect()
         try await waitUntil { events(script).contains("initialize") }
         await model.shutdown()
         try await Task.sleep(for:.milliseconds(100))
         XCTAssertEqual(model.connection,.disconnected)
         XCTAssertEqual(events(script).filter{$0 == "start"}.count,1)
+    }
+}
+
+private actor MutableTaskActivity {
+    private var active = false
+    func set(_ value: Bool) { active = value }
+    func read() -> Bool { active }
+}
+
+extension MonitoringNetworkTests {
+    func testIdleSkipsAllDataRequestsAndTaskExecutionResumesWithoutRelaunch() async throws {
+        let script = try makeServer(mode:"normal")
+        defer { try? FileManager.default.removeItem(at:script.deletingLastPathComponent()) }
+        let activity = MutableTaskActivity()
+        let model = IslandViewModel(widgetSnapshots:nil,resolveCodexPath:{script.path},
+                                    readActivity:{await activity.read()},
+                                    intervals:.init(activityCheck:.milliseconds(40),quota:0.1,threads:0.15,history:0.25))
+        model.connect()
+        try await waitUntil { model.connection == .connected }
+        try await Task.sleep(for:.milliseconds(400))
+        await model.refresh(); model.refreshIfStale(maxAge:0)
+        XCTAssertFalse(model.hasActiveCodexTasks)
+        XCTAssertFalse(events(script).contains("account/rateLimits/read"))
+        XCTAssertFalse(events(script).contains("account/usage/read"))
+        XCTAssertFalse(events(script).contains("thread/list"))
+
+        await activity.set(true)
+        try await waitUntil { events(script).contains("thread/list") }
+        XCTAssertTrue(model.hasActiveCodexTasks)
+        try await Task.sleep(for:.milliseconds(400))
+        XCTAssertGreaterThan(events(script).filter{$0 == "account/rateLimits/read"}.count,1)
+        XCTAssertGreaterThan(events(script).filter{$0 == "account/usage/read"}.count,1)
+        XCTAssertGreaterThan(events(script).filter{$0 == "thread/list"}.count,1)
+
+        await activity.set(false)
+        try await waitUntil { !model.hasActiveCodexTasks }
+        let pausedEvents = events(script)
+        let cachedQuota = model.windows
+        await model.refresh(); model.refreshIfStale(maxAge:0)
+        try await Task.sleep(for:.milliseconds(400))
+        XCTAssertEqual(events(script),pausedEvents)
+        XCTAssertEqual(model.windows,cachedQuota)
+
+        await activity.set(true)
+        try await waitUntil { events(script).count > pausedEvents.count }
+        XCTAssertEqual(events(script).filter{$0 == "start"}.count,1)
+        await model.shutdown()
+    }
+}
+
+final class CodexActivityReaderTests: XCTestCase {
+    private func log() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("haloscope-activity-\(UUID()).jsonl")
+        try Data().write(to:url)
+        return url
+    }
+    private func append(_ text: String, to url: URL) throws {
+        let handle = try FileHandle(forWritingTo:url)
+        defer { try? handle.close() }
+        try handle.seekToEnd(); try handle.write(contentsOf:Data(text.utf8))
+    }
+    func testPlannedWeeklyTaskAndCompletedTaskStayInactive() async throws {
+        let url = try log()
+        defer { try? FileManager.default.removeItem(at:url) }
+        let reader = CodexActivityReader(openFiles:{[url]})
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_scheduled\",\"schedule\":\"weekly\"}}\n",to:url)
+        let planned = await reader.hasRunningTasks()
+        XCTAssertFalse(planned)
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_started\"}}\n",to:url)
+        let executing = await reader.hasRunningTasks()
+        XCTAssertTrue(executing)
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_complete\"}}\n",to:url)
+        let completed = await reader.hasRunningTasks()
+        XCTAssertFalse(completed)
+    }
+    func testBackgroundExecutionSurvivesNoNewLogWritesAndStopsOnInterrupt() async throws {
+        let url = try log()
+        defer { try? FileManager.default.removeItem(at:url) }
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_started\"}}\n",to:url)
+        let reader = CodexActivityReader(openFiles:{[url]})
+        let first = await reader.hasRunningTasks()
+        let unchanged = await reader.hasRunningTasks()
+        XCTAssertTrue(first); XCTAssertTrue(unchanged)
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"turn_aborted\"}}\n",to:url)
+        let interrupted = await reader.hasRunningTasks()
+        XCTAssertFalse(interrupted)
+    }
+    func testOnlyOpenSessionLogsCountAndAnyRunningTaskKeepsPollingEnabled() async throws {
+        let runningURL = try log(), completedURL = try log()
+        defer { try? FileManager.default.removeItem(at:runningURL); try? FileManager.default.removeItem(at:completedURL) }
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_started\"}}\n",to:runningURL)
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_complete\"}}\n",to:completedURL)
+        let both = CodexActivityReader(openFiles:{[runningURL,completedURL]})
+        let idle = CodexActivityReader(openFiles:{[completedURL]})
+        let active = await both.hasRunningTasks(), inactive = await idle.hasRunningTasks()
+        XCTAssertTrue(active); XCTAssertFalse(inactive)
+    }
+    func testPartialWritesAndTruncationDoNotUseOldActivity() async throws {
+        let url = try log()
+        defer { try? FileManager.default.removeItem(at:url) }
+        let reader = CodexActivityReader(openFiles:{[url]})
+        try append("{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_",to:url)
+        let partial = await reader.hasRunningTasks()
+        XCTAssertFalse(partial)
+        try append("started\"}}\n",to:url)
+        let complete = await reader.hasRunningTasks()
+        XCTAssertTrue(complete)
+        let handle = try FileHandle(forWritingTo:url)
+        try handle.truncate(atOffset:0); try handle.close()
+        let truncated = await reader.hasRunningTasks()
+        XCTAssertFalse(truncated)
+    }
+    func testMessageTextCannotPretendToBeTaskLifecycle() async throws {
+        let url = try log()
+        defer { try? FileManager.default.removeItem(at:url) }
+        try append("{\"type\":\"response_item\",\"payload\":{\"type\":\"task_started\",\"text\":\"event_msg\"}}\n",to:url)
+        let reader = CodexActivityReader(openFiles:{[url]})
+        let active = await reader.hasRunningTasks()
+        XCTAssertFalse(active)
     }
 }

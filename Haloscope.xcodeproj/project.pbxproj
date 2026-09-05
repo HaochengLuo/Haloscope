@@ -37,6 +37,8 @@
 		AC100000000000000000000B /* Haloscope/Window/NotchPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200000000000000000000A /* Haloscope/Window/NotchPanelController.swift */; };
 		AC100000000000000000000C /* Haloscope/Shared/DistributionChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2000000000000000000001 /* Haloscope/Shared/DistributionChannel.swift */; };
 		AC100000000000000000000D /* Haloscope/Shared/DistributionChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2000000000000000000001 /* Haloscope/Shared/DistributionChannel.swift */; };
+		AD1000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift */; };
+		AD1000000000000000000002 /* Haloscope/Services/CodexActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +96,7 @@
 		AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Shared/Localization.swift; sourceTree = "<group>"; };
 		AC2000000000000000000001 /* Haloscope/Shared/DistributionChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Shared/DistributionChannel.swift; sourceTree = "<group>"; };
 		AC3000000000000000000001 /* Haloscope Preview.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Haloscope Preview.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD2000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haloscope/Services/CodexActivityMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +132,7 @@
 				AA2000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift */,
 				AA2000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift */,
 				AA2000000000000000000005 /* Haloscope/Models/CoreModels.swift */,
+				AD2000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift */,
 				AA2000000000000000000006 /* Haloscope/Services/SystemServices.swift */,
 				AA2000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift */,
 				AB2000000000000000000001 /* Haloscope/Shared/Localization.swift */,
@@ -330,6 +334,7 @@
 				AC1000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift in Sources */,
 				AC1000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift in Sources */,
 				AC1000000000000000000005 /* Haloscope/Models/CoreModels.swift in Sources */,
+				AD1000000000000000000002 /* Haloscope/Services/CodexActivityMonitor.swift in Sources */,
 				AC1000000000000000000006 /* Haloscope/Services/SystemServices.swift in Sources */,
 				AC1000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
 				AC1000000000000000000008 /* Haloscope/Shared/Localization.swift in Sources */,
@@ -359,6 +364,7 @@
 				AA1000000000000000000003 /* Haloscope/CodexClient/CodexPayloadDecoder.swift in Sources */,
 				AA1000000000000000000004 /* Haloscope/CodexClient/JSONValue.swift in Sources */,
 				AA1000000000000000000005 /* Haloscope/Models/CoreModels.swift in Sources */,
+				AD1000000000000000000001 /* Haloscope/Services/CodexActivityMonitor.swift in Sources */,
 				AA1000000000000000000006 /* Haloscope/Services/SystemServices.swift in Sources */,
 				AA1000000000000000000007 /* Haloscope/Shared/WidgetQuotaSnapshot.swift in Sources */,
 				AB1000000000000000000001 /* Haloscope/Shared/Localization.swift in Sources */,
