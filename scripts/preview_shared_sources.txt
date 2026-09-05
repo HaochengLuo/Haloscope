@@ -10,3 +10,4 @@ Haloscope/Shared/WidgetQuotaSnapshot.swift
 Haloscope/ViewModels/IslandViewModel.swift
 Haloscope/Views/IslandView.swift
 Haloscope/Window/NotchPanelController.swift
+Haloscope/Services/CodexActivityMonitor.swift

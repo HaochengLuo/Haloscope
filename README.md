@@ -123,7 +123,9 @@ Haloscope does not require Accessibility or screen-recording permission. Because
 
 ## Network usage and recovery
 
-The monitoring child disables plugins, the remote plugin catalog, apps, and workspace dependencies through launch arguments without modifying the user's global Codex configuration. Threads are checked approximately every 60 seconds; quota is checked every 30 seconds, and usage history is attempted at most once per hour. Quota notifications merge into the cached snapshot.
+The monitoring child disables plugins, the remote plugin catalog, apps, and workspace dependencies through launch arguments without modifying the user's global Codex configuration. Data is refreshed only while a local Codex task is executing, including background tasks: threads approximately every 60 seconds, quota every 30 seconds, and usage history at most once per hour. Scheduled weekly tasks do not count until execution starts. When idle, these three queries pause and cached data remains visible. Quota notifications merge into the cached snapshot.
+
+Every 2 seconds, activity detection checks session logs currently open for writing by local Codex processes. It decodes only task lifecycle fields, without saving or uploading conversation bodies. The detector makes no network requests, reads no automation schedules, and launches no additional Codex process. Unreadable or unknown states are treated as no activity detected.
 
 After a timeout, transport failure, or failed initialization, monitoring pauses and retains previous data. Haloscope does not automatically relaunch Codex. Resolve the network or login issue, then choose **Reconnect** in the panel's context menu. A CLI that rejects the disable flags fails the connection; Haloscope never retries with those flags removed. See the [network fix validation record](docs/NETWORK_USAGE.md).
 

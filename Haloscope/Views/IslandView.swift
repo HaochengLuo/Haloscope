@@ -437,7 +437,7 @@ struct IslandView: View {
                 .padding(.horizontal,2)
 
                 if let date=model.lastUpdated {
-                    Text(L10n.format("quota.updated",language:settings.language,formattedDate(date,dateStyle:.none,timeStyle:.medium)))
+                    Text(L10n.format(model.hasActiveCodexTasks ? "quota.updated":"quota.paused",language:settings.language,formattedDate(date,dateStyle:.none,timeStyle:.medium)))
                         .font(.system(size:9))
                         .foregroundStyle(quaternaryTextColor)
                 }
@@ -578,9 +578,9 @@ struct IslandView: View {
     private func empty(_ text:String)->some View { Text(text).font(.system(size:11)).foregroundStyle(tertiaryTextColor) }
     private func pill(_ text:String,color:Color)->some View { Text(text).font(.system(size:9,weight:.bold)).foregroundStyle(color).padding(.horizontal,7).padding(.vertical,4).background(color.opacity(0.12),in:Capsule()) }
     private var connectionColor:Color { model.connection == .connected ? .green : model.connection == .connecting ? .yellow : model.connection == .error ? .red:.gray }
-    private var connectionLabel:String { model.connection == .connected ? t("connection.persistent"):model.connection.localizedLabel(language:settings.language) }
-    private var statusColor:Color { switch model.connection { case .error:.red; case .connecting:.yellow; case .connected:model.hasRecentThreadActivity ? .yellow:.gray; case .disconnected:.gray } }
-    private var statusText:String { model.connection == .connected ? (model.hasRecentThreadActivity ? t("status.recent_activity"):t("status.no_activity")) : model.connection.localizedLabel(language:settings.language) }
+    private var connectionLabel:String { model.connection == .connected ? t(model.hasActiveCodexTasks ? "connection.persistent":"connection.idle"):model.connection.localizedLabel(language:settings.language) }
+    private var statusColor:Color { switch model.connection { case .error:.red; case .connecting:.yellow; case .connected:model.hasActiveCodexTasks ? .yellow:.gray; case .disconnected:.gray } }
+    private var statusText:String { model.connection == .connected ? (model.hasActiveCodexTasks ? t("status.recent_activity"):t("status.no_activity")) : model.connection.localizedLabel(language:settings.language) }
     private func openCodexDesktop() { model.collapse(); if !CodexDesktopApplication.open() { NSSound.beep() } }
 }
 
