@@ -1,0 +1,39 @@
+{
+  "seconds": 45.1,
+  "launch_count": 1,
+  "observed_process_count": 1,
+  "child_process_names": [
+    "codex"
+  ],
+  "sample_rows": 23,
+  "observed_bytes_in": 344082,
+  "observed_bytes_out": 10581,
+  "rpc": [
+    {
+      "method": "initialize",
+      "ok": true,
+      "error_code": null
+    },
+    {
+      "method": "account/rateLimits/read",
+      "ok": true,
+      "error_code": null
+    },
+    {
+      "method": "account/usage/read",
+      "ok": true,
+      "error_code": null
+    },
+    {
+      "method": "thread/list",
+      "ok": true,
+      "error_code": null
+    }
+  ],
+  "notifications": {
+    "remoteControl/status/changed": 1
+  },
+  "plugin_catalog_log_lines": 0,
+  "scope": "One controlled monitoring subprocess using the same launch flags; not a long-duration run of the packaged GUI.",
+  "codex_version": "0.146.0"
+}

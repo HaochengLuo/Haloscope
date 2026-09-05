@@ -9,6 +9,29 @@ struct AccountSnapshot: Sendable {
 }
 
 struct CodexPayloadDecoder: Sendable {
+    func mergingAccountNotification(_ value: JSONValue, into previous: AccountSnapshot) -> AccountSnapshot {
+        var result = previous
+        let update = account(value)
+        for window in update.windows {
+            if let index = result.windows.firstIndex(where:{ $0.id == window.id }) {
+                var merged = window
+                let old = result.windows[index]
+                merged.limitName = merged.limitName ?? old.limitName
+                merged.windowDurationMins = merged.windowDurationMins ?? old.windowDurationMins
+                merged.resetsAt = merged.resetsAt ?? old.resetsAt
+                result.windows[index] = merged
+            } else {
+                result.windows.append(window)
+            }
+        }
+        result.planType = update.planType ?? previous.planType
+        result.credits = update.credits ?? previous.credits
+        result.availableResetCredits = update.availableResetCredits ?? previous.availableResetCredits
+        result.primaryWindow = result.windows.first { $0.limitID == "codex" && $0.role == .primary }
+            ?? result.windows.first { $0.role == .primary }
+        return result
+    }
+
     func account(_ value: JSONValue, now: Date = .now) -> AccountSnapshot {
         guard let root = value.objectValue else { return .init(windows:[],planType:nil,credits:nil) }
         var groups: [(String, JSONValue)] = []

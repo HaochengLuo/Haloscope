@@ -46,6 +46,7 @@ struct RateWindow: Codable, Equatable, Identifiable, Sendable {
     var roundedRemainingPercent: Int { Int(remainingPercent.rounded()) }
     func localizedDisplayName(language: AppLanguage) -> String {
         if let windowDurationMins {
+            if windowDurationMins == 300 { return L10n.text("rate.five_hour",language:language) }
             if abs(windowDurationMins - 10080) <= 60 { return L10n.text("rate.seven_day",language:language) }
             return limitName ?? L10n.format("rate.minutes",language:language,windowDurationMins)
         }
